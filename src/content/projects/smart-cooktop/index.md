@@ -8,7 +8,7 @@ tags: ["UX research", "UI design", "Figma prototype", "3D CAD"]
 theme: "sand"
 order: 2
 type: "case"
-cover: "./assets/cover.webp"
+cover: "./assets/cover.png"
 coverAlt: "Render of the redesigned cooktop with an integrated touchscreen"
 gallery:
   - src: "./assets/ui-home.webp"

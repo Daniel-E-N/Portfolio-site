@@ -56,6 +56,11 @@ const slugOf = (id: string) => id.split('/')[0];
             class="work-card reveal"
             href={`${import.meta.env.BASE_URL}/portfolio/${slugOf(p.id)}`}
             data-theme={p.data.theme}
+            style={
+              slugOf(p.id) === 'focus-lamp' ? '--obj-pos: calc(50% + 15px) bottom; --obj-scale: 1.25;' :
+              slugOf(p.id) === 'hospital-bed-remote' ? '--obj-fit: contain; --obj-pos: bottom;' :
+              ''
+            }
           >
             <div class="work-card__inner">
               <div class="work-orb" aria-hidden="true">

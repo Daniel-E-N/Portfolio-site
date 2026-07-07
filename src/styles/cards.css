@@ -51,17 +51,17 @@
   transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
   overflow: hidden; border-radius: var(--radius-m); aspect-ratio: 4 / 3; background: color-mix(in srgb, var(--theme) 24%, #fff);
 }
-.work-media img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s var(--ease-out); }
+.work-media img { width: 100%; height: 100%; object-fit: var(--obj-fit, cover); object-position: var(--obj-pos, center); transform: scale(var(--obj-scale, 1)); transition: transform 0.6s var(--ease-out); }
 .work-card:hover .work-media { transform: translate3d(0, 0, 30px); }
-.work-card:hover .work-media img { transform: scale(1.035); }
+.work-card:hover .work-media img { transform: scale(calc(var(--obj-scale, 1) + 0.035)); }
 
 /* --- ORB GLASS --- */
 .work-orb {
     position: absolute;
     /* Default (odd cards): image is on right, so put orb on left */
-    left: -1.5rem; 
+    left: -2.5rem; 
     right: auto;
-    top: -1.5rem;
+    top: -2.5rem;
     width: 180px;
     height: 180px;
     transform-style: preserve-3d;
@@ -72,7 +72,7 @@
 /* Even cards: image is on left, so put orb on right */
 .work-card:nth-child(even) .work-orb {
     left: auto;
-    right: -1.5rem;
+    right: -2.5rem;
 }
 
 .work-orb-circle {
@@ -97,17 +97,17 @@
 
 /* Default (odd cards) offsets */
 .work-orb-circle:nth-child(1) { width: 140px; transform: translate3d(0, 0, 10px); top: 10px; left: 10px; }
-.work-orb-circle:nth-child(2) { width: 110px; transform: translate3d(0, 0, 20px); top: 15px; left: 15px; transition-delay: 0.04s; }
-.work-orb-circle:nth-child(3) { width: 80px; transform: translate3d(0, 0, 30px); top: 25px; left: 25px; transition-delay: 0.08s; }
-.work-orb-circle:nth-child(4) { width: 50px; transform: translate3d(0, 0, 40px); top: 35px; left: 35px; transition-delay: 0.12s; }
-.work-orb-circle:nth-child(5) { width: 25px; transform: translate3d(0, 0, 50px); top: 45px; left: 45px; transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.16s, opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.16s, background 1.2s ease-in-out 0.16s; }
+.work-orb-circle:nth-child(2) { width: 110px; transform: translate3d(0, 0, 20px); top: 25px; left: 25px; transition-delay: 0.04s; }
+.work-orb-circle:nth-child(3) { width: 80px; transform: translate3d(0, 0, 30px); top: 40px; left: 40px; transition-delay: 0.08s; }
+.work-orb-circle:nth-child(4) { width: 50px; transform: translate3d(0, 0, 40px); top: 55px; left: 55px; transition-delay: 0.12s; }
+.work-orb-circle:nth-child(5) { width: 25px; transform: translate3d(0, 0, 50px); top: 67.5px; left: 67.5px; transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.16s, opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.16s, background 1.2s ease-in-out 0.16s; }
 
 /* Even cards offsets */
 .work-card:nth-child(even) .work-orb-circle:nth-child(1) { left: auto; right: 10px; }
-.work-card:nth-child(even) .work-orb-circle:nth-child(2) { left: auto; right: 15px; }
-.work-card:nth-child(even) .work-orb-circle:nth-child(3) { left: auto; right: 25px; }
-.work-card:nth-child(even) .work-orb-circle:nth-child(4) { left: auto; right: 35px; }
-.work-card:nth-child(even) .work-orb-circle:nth-child(5) { left: auto; right: 45px; }
+.work-card:nth-child(even) .work-orb-circle:nth-child(2) { left: auto; right: 25px; }
+.work-card:nth-child(even) .work-orb-circle:nth-child(3) { left: auto; right: 40px; }
+.work-card:nth-child(even) .work-orb-circle:nth-child(4) { left: auto; right: 55px; }
+.work-card:nth-child(even) .work-orb-circle:nth-child(5) { left: auto; right: 67.5px; }
 
 .work-card:hover .work-orb-circle:nth-child(1) { transform: translate3d(0, 0, 20px); opacity: 1; }
 .work-card:hover .work-orb-circle:nth-child(2) { transform: translate3d(0, 0, 45px); opacity: 1; }
@@ -116,11 +116,11 @@
 .work-card:hover .work-orb-circle:nth-child(5) { transform: translate3d(0, 0, 120px); opacity: 1; background: var(--theme); }
 
 @media (hover: none) and (pointer: coarse) {
-  .work-orb-circle:nth-child(1) { transform: translate3d(0, 0, 20px); opacity: 1; }
-  .work-orb-circle:nth-child(2) { transform: translate3d(0, 0, 45px); opacity: 1; }
-  .work-orb-circle:nth-child(3) { transform: translate3d(0, 0, 70px); opacity: 1; }
-  .work-orb-circle:nth-child(4) { transform: translate3d(0, 0, 95px); opacity: 1; }
-  .work-orb-circle:nth-child(5) { transform: translate3d(0, 0, 120px); opacity: 1; background: var(--theme); }
+  .work-orb-circle:nth-child(1) { display: none; }
+  .work-orb-circle:nth-child(2) { display: none; }
+  .work-orb-circle:nth-child(3) { transform: translate3d(0, 0, 70px) scale(0.8); opacity: 1; }
+  .work-orb-circle:nth-child(4) { transform: translate3d(0, 0, 95px) scale(0.8); opacity: 1; }
+  .work-orb-circle:nth-child(5) { transform: translate3d(0, 0, 120px) scale(0.8); opacity: 1; background: var(--theme); }
 }
 
 /* Custom Page Transition Effects */

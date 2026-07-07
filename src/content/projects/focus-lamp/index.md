@@ -8,7 +8,7 @@ theme: "teal"
 order: 4
 type: "case"
 status: "Work in progress"
-cover: "./assets/cover.webp"
+cover: "./assets/cover.png"
 coverAlt: "Render of the Focus Lamp concept"
 gallery:
   - src: "./assets/render-lamp-1.webp"
