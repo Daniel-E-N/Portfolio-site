@@ -162,25 +162,4 @@
 @media (max-width: 900px) {
   .work-card__inner, .work-card:nth-child(even) .work-card__inner { grid-template-columns: 1fr; }
   .work-card__inner .work-media, .work-card:nth-child(even) .work-card__inner .work-media { order: -1; }
-  
-  /* Vertical Flick Snapping */
-  html {
-    scroll-snap-type: y mandatory;
-    overflow-x: visible !important; /* Fixing iOS Safari bug where overflow-x breaks viewport snapping */
-  }
-  body {
-    overflow-x: visible !important;
-  }
-  .work-list {
-    flex-direction: column;
-    gap: 5rem; /* Give them breathing room so it feels like distinct screens */
-  }
-  .work-card {
-    scroll-snap-align: center;
-    scroll-snap-stop: always;
-  }
-  /* Allow the non-card sections to be snappable so the page doesn't violently jump away from the header/footer */
-  .section, .site-header, .site-footer {
-    scroll-snap-align: start;
-  }
 }
