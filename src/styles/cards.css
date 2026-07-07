@@ -162,4 +162,18 @@
 @media (max-width: 900px) {
   .work-card__inner, .work-card:nth-child(even) .work-card__inner { grid-template-columns: 1fr; }
   .work-card__inner .work-media, .work-card:nth-child(even) .work-card__inner .work-media { order: -1; }
+  
+  /* Vertical Flick Snapping */
+  html, body {
+    scroll-snap-type: y proximity;
+  }
+  .work-card {
+    scroll-snap-align: center;
+    /* Optional: add some padding to make the snap feel better if they are too close */
+    scroll-margin-block: 5vh;
+  }
+  /* Allow the non-card sections to be snappable so the page doesn't violently jump away from the header/footer */
+  .section, .site-header, .site-footer {
+    scroll-snap-align: start;
+  }
 }
