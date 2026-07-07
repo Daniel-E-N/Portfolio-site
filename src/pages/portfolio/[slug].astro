@@ -1,0 +1,115 @@
+---
+import { getCollection, render } from 'astro:content';
+import { Image } from 'astro:assets';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+export async function getStaticPaths() {
+  const projects = (await getCollection('projects')).sort(
+    (a, b) => a.data.order - b.data.order
+  );
+  return projects.map((entry, i) => ({
+    params: { slug: entry.id.split('/')[0] },
+    props: {
+      entry,
+      next: projects[(i + 1) % projects.length],
+    },
+  }));
+}
+
+const { entry, next } = Astro.props;
+const { Content } = await render(entry);
+const d = entry.data;
+const nextSlug = next.id.split('/')[0];
+const isGallery = d.type === 'gallery';
+---
+
+<BaseLayout title={`${d.title} — Daniel Epler Nuñez`} description={d.summary} current="work">
+  <article data-theme={d.theme}>
+    <!-- Hero -->
+    <header class="case-hero">
+      <div class="container">
+        <p class="crumbs"><a href="/#work">Work</a> / {d.title}</p>
+        <h1>{d.title}</h1>
+        <p class="summary">{d.summary}</p>
+        <dl class="case-meta">
+          <div><dt>Year</dt><dd>{d.year}</dd></div>
+          {d.collaborator && <div><dt>Collaborator</dt><dd>{d.collaborator}</dd></div>}
+          {d.role && <div><dt>Role</dt><dd>{d.role}</dd></div>}
+          {d.status && <div><dt>Status</dt><dd>{d.status}</dd></div>}
+        </dl>
+        {
+          !isGallery && (
+            <div class="case-cover">
+              <Image src={d.cover} alt={d.coverAlt} widths={[800, 1400, 2000]} sizes="(max-width: 1240px) 94vw, 1160px" loading="eager" />
+            </div>
+          )
+        }
+      </div>
+    </header>
+
+    {
+      isGallery ? (
+        <section class="section container">
+          <div class="prose" style="margin-bottom: var(--space-4);">
+            <Content />
+          </div>
+          <div class="masonry">
+            {d.gallery.map((g) => (
+              <figure>
+                <Image src={g.src} alt={g.alt} widths={[560, 900]} sizes="(max-width: 560px) 92vw, 420px" class="lightboxable" />
+              </figure>
+            ))}
+          </div>
+        </section>
+      ) : (
+        <>
+          {d.gallery.length > 0 && (
+            <section class="section container">
+              <div class="case-gallery reveal" aria-label={`${d.title} image gallery`}>
+                {d.gallery.map((g) => (
+                  <Image src={g.src} alt={g.alt} widths={[560, 900]} sizes="24rem" class="lightboxable" />
+                ))}
+              </div>
+            </section>
+          )}
+          <section class="container" style="padding-bottom: var(--space-6);">
+            <div class="prose">
+              <Content />
+            </div>
+          </section>
+        </>
+      )
+    }
+
+    <!-- Next project -->
+    <a class="next-project" href={`/portfolio/${nextSlug}`} data-theme={next.data.theme}>
+      <div class="container">
+        <div>
+          <span class="label">Next project</span>
+          <span class="title">{next.data.title}</span>
+        </div>
+        <span class="arrow" aria-hidden="true">→</span>
+      </div>
+    </a>
+  </article>
+
+  <!-- Lightbox -->
+  <dialog class="lightbox">
+    <button type="button" aria-label="Close">×</button>
+    <img src="" alt="" />
+  </dialog>
+
+  <script>
+    const dialog = document.querySelector<HTMLDialogElement>('dialog.lightbox');
+    const dImg = dialog?.querySelector('img');
+    document.querySelectorAll<HTMLImageElement>('.lightboxable').forEach((img) => {
+      img.addEventListener('click', () => {
+        if (!dialog || !dImg) return;
+        dImg.src = img.currentSrc || img.src;
+        dImg.alt = img.alt;
+        dialog.showModal();
+      });
+    });
+    dialog?.addEventListener('click', () => dialog.close());
+  </script>
+</BaseLayout>

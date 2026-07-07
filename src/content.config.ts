@@ -1,0 +1,34 @@
+import { defineCollection, z } from 'astro:content';
+import { glob } from 'astro/loaders';
+
+/**
+ * Projects live in src/content/projects/<slug>/index.md
+ * Drop a new folder (index.md + assets/) in there and a page is
+ * generated automatically at /portfolio/<slug>.
+ */
+const projects = defineCollection({
+  loader: glob({ pattern: '*/index.md', base: './src/content/projects' }),
+  schema: ({ image }) =>
+    z.object({
+      title: z.string(),
+      summary: z.string(),
+      year: z.number(),
+      collaborator: z.string().optional(),
+      role: z.string().optional(),
+      tags: z.array(z.string()).default([]),
+      /** Accent color used for the card + case page */
+      theme: z.enum(['teal', 'blue', 'sand', 'dark']).default('teal'),
+      /** Position on the home page (1 = first) */
+      order: z.number(),
+      /** "case" = written case study, "gallery" = image grid */
+      type: z.enum(['case', 'gallery']).default('case'),
+      status: z.string().optional(),
+      cover: image(),
+      coverAlt: z.string(),
+      gallery: z
+        .array(z.object({ src: image(), alt: z.string() }))
+        .default([]),
+    }),
+});
+
+export const collections = { projects };

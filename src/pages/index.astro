@@ -1,0 +1,258 @@
+---
+import { getCollection } from 'astro:content';
+import { Image } from 'astro:assets';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import CanvasBackground from '../components/CanvasBackground.astro';
+
+import portrait from '../assets/portrait.png';
+import strip1 from '../assets/photo-strip-1.webp';
+import strip2 from '../assets/photo-strip-2.webp';
+import strip3 from '../assets/photo-strip-3.webp';
+import strip4 from '../assets/photo-strip-4.webp';
+
+const projects = (await getCollection('projects')).sort(
+  (a, b) => a.data.order - b.data.order
+);
+const slugOf = (id: string) => id.split('/')[0];
+---
+
+<BaseLayout title="Daniel Epler Nuñez — Product Designer" current="work">
+  <CanvasBackground />
+  <section class="hero container">
+    <div class="hero-grid">
+      <div>
+        <p class="eyebrow reveal">Product Designer · MSc IT Product Design</p>
+        <h1 class="reveal" style="transition-delay: 0.1s">I design products people <em>actually enjoy</em> using.</h1>
+        <p class="lede reveal" style="transition-delay: 0.2s">
+          Blending UX principles, hands-on prototyping, and 3D CAD to turn
+          real user needs into meaningful products.
+        <div class="hero-actions reveal" style="transition-delay: 0.3s">
+          <a class="btn btn--solid" href="#work">See my work <span class="arrow">↓</span></a>
+          <a class="btn" href="/about">About me</a>
+        </div>
+      </div>
+      <div class="hero-portrait-wrapper reveal" style="transition-delay: 0.4s">
+        <div class="hero-portrait">
+          <div class="blob">
+             <Image src={portrait} alt="" widths={[420, 840]} sizes="(max-width: 880px) 20rem, 26rem" />
+          </div>
+          <Image class="popout" src={portrait} alt="Portrait of Daniel Epler Nuñez" widths={[420, 840]} sizes="(max-width: 880px) 20rem, 26rem" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Work -->
+  <section class="section container" id="work">
+    <div class="section-head">
+      <h2>Selected work</h2>
+      <span class="count">{projects.length} projects</span>
+    </div>
+
+    <div class="work-list">
+      {
+        projects.map((p, i) => (
+          <a
+            class="work-card reveal"
+            href={`/portfolio/${slugOf(p.id)}`}
+            data-theme={p.data.theme}
+          >
+            <div class="work-card__inner">
+              <div class="work-orb" aria-hidden="true">
+                <span class="work-orb-circle"></span>
+                <span class="work-orb-circle"></span>
+                <span class="work-orb-circle"></span>
+                <span class="work-orb-circle"></span>
+                <span class="work-orb-circle"></span>
+              </div>
+              <div class="work-glass" aria-hidden="true"></div>
+              <div class="work-copy">
+                <span class="index">
+                  {String(i + 1).padStart(2, '0')} — {p.data.year}
+                  {p.data.status ? ` · ${p.data.status}` : ''}
+                </span>
+                <h3>{p.data.title}</h3>
+                <p>{p.data.summary}</p>
+                <ul class="work-tags">
+                  {p.data.tags.map((t) => (
+                    <li>{t}</li>
+                  ))}
+                </ul>
+                <span class="work-cta">
+                  <u>{p.data.type === 'gallery' ? 'View gallery' : 'View case study'}</u>
+                  <span class="arrow">→</span>
+                </span>
+              </div>
+              <div class="work-media">
+                <Image
+                  src={p.data.cover}
+                  alt={p.data.coverAlt}
+                  widths={[640, 1080]}
+                  sizes="(max-width: 880px) 92vw, 640px"
+                />
+              </div>
+            </div>
+          </a>
+        ))
+      }
+    </div>
+  </section>
+
+  <!-- About teaser -->
+  <section class="section container">
+    <div class="about-teaser reveal">
+      <div>
+        <h2>Design that supports the way people communicate and interact</h2>
+        <p>
+          I'm an aspiring product designer with a solid foundation in UX
+          principles and hands-on skills in user research, prototyping, and
+          3D CAD — driven by those moments when a product just works,
+          effortlessly.
+        </p>
+        <a class="btn" href="/about">More about me <span class="arrow">→</span></a>
+      </div>
+      <div class="photo-strip">
+        <Image src={strip1} alt="Daniel presenting design work" widths={[400]} sizes="280px" />
+        <Image src={strip2} alt="Prototyping session" widths={[400]} sizes="280px" />
+        <Image src={strip3} alt="Testing a cooking prototype" widths={[400]} sizes="280px" />
+        <Image src={strip4} alt="Workshop collaboration" widths={[400]} sizes="280px" />
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="section container">
+    <div class="cta-band reveal">
+      <h2>Let's build something meaningful</h2>
+      <p>Open to product design opportunities and collaborations.</p>
+      <a class="btn" href="mailto:danielepler93@gmail.com">danielepler93@gmail.com <span class="arrow">→</span></a>
+    </div>
+  </section>
+
+  <script>
+    import { navigate } from 'astro:transitions/client';
+
+    document.addEventListener('astro:page-load', () => {
+      const cards = document.querySelectorAll('.work-card');
+      
+      cards.forEach(card => {
+        const inner = card.querySelector('.work-card__inner');
+        if (!inner) return;
+
+        let mouseRotateX = 0;
+        let mouseRotateY = 0;
+        let scrollRotateX = 0;
+
+        const updateTransform = () => {
+          inner.style.transform = `rotate3d(1, 0, 0, ${mouseRotateX + scrollRotateX}deg) rotate3d(0, 1, 0, ${mouseRotateY}deg)`;
+        };
+        
+        card.addEventListener('mousemove', (e) => {
+          const ev = e;
+          const rect = card.getBoundingClientRect();
+          const x = ev.clientX - rect.left;
+          const y = ev.clientY - rect.top;
+          
+          const centerX = rect.width / 2;
+          const centerY = rect.height / 2;
+          
+          // Max tilt of 15 degrees
+          mouseRotateX = ((y - centerY) / centerY) * -15; 
+          mouseRotateY = ((x - centerX) / centerX) * 15;
+          updateTransform();
+        });
+        
+        card.addEventListener('mouseleave', () => {
+          mouseRotateX = 0;
+          mouseRotateY = 0;
+          updateTransform();
+        });
+
+        // Custom page transition logic
+        card.addEventListener('click', (e) => {
+          if (e.ctrlKey || e.metaKey || e.button !== 0) return;
+          
+          e.preventDefault();
+          const url = card.getAttribute('href');
+          const circle = card.querySelector('.work-orb-circle:nth-child(5)');
+          
+          if (circle) {
+             card.classList.add('is-active');
+             circle.classList.add('is-expanding');
+             
+             setTimeout(() => {
+                navigate(url);
+             }, 400);
+          } else {
+             navigate(url);
+          }
+        });
+
+        const handleScroll = () => {
+          const rect = card.getBoundingClientRect();
+          const windowHeight = window.innerHeight;
+          
+          // 0 is perfectly centered
+          const cardCenterY = rect.top + rect.height / 2;
+          const distanceFromCenter = (cardCenterY - windowHeight / 2) / (windowHeight / 2);
+          
+          if (distanceFromCenter > -1.5 && distanceFromCenter < 1.5) {
+             scrollRotateX = distanceFromCenter * 8; // 8 degrees max scroll tilt
+             updateTransform();
+          }
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        handleScroll(); // initial state
+      });
+
+      // Portrait parallax
+      const portraitWrapper = document.querySelector('.hero-portrait-wrapper');
+      const portraitInner = document.querySelector('.hero-portrait');
+      if (portraitWrapper && portraitInner) {
+        let pMouseRotateX = 0;
+        let pMouseRotateY = 0;
+        let pScrollRotateX = 0;
+
+        const updatePortraitTransform = () => {
+          portraitInner.style.transform = `perspective(800px) rotate3d(1, 0, 0, ${pMouseRotateX + pScrollRotateX}deg) rotate3d(0, 1, 0, ${pMouseRotateY}deg)`;
+        };
+
+        portraitWrapper.addEventListener('mousemove', (e) => {
+          const rect = portraitWrapper.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          
+          const centerX = rect.width / 2;
+          const centerY = rect.height / 2;
+          
+          // Max tilt of 10 degrees for portrait
+          pMouseRotateX = ((y - centerY) / centerY) * -10; 
+          pMouseRotateY = ((x - centerX) / centerX) * 10;
+          updatePortraitTransform();
+        });
+
+        portraitWrapper.addEventListener('mouseleave', () => {
+          pMouseRotateX = 0;
+          pMouseRotateY = 0;
+          updatePortraitTransform();
+        });
+
+        const handlePortraitScroll = () => {
+          const rect = portraitWrapper.getBoundingClientRect();
+          const windowHeight = window.innerHeight;
+          const cardCenterY = rect.top + rect.height / 2;
+          const distanceFromCenter = (cardCenterY - windowHeight / 2) / (windowHeight / 2);
+          
+          if (distanceFromCenter > -1.5 && distanceFromCenter < 1.5) {
+             pScrollRotateX = distanceFromCenter * 6;
+             updatePortraitTransform();
+          }
+        };
+
+        window.addEventListener('scroll', handlePortraitScroll, { passive: true });
+        handlePortraitScroll();
+      }
+    });
+  </script>
+</BaseLayout>

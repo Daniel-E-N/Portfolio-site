@@ -1,0 +1,73 @@
+---
+import { Image } from 'astro:assets';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import portrait from '../assets/portrait.png';
+import strip1 from '../assets/photo-strip-1.webp';
+import strip2 from '../assets/photo-strip-2.webp';
+import strip3 from '../assets/photo-strip-3.webp';
+import strip4 from '../assets/photo-strip-4.webp';
+---
+
+<BaseLayout title="About — Daniel Epler Nuñez" current="about">
+  <section class="page-hero container">
+    <h1>About me</h1>
+    <p class="lede">
+      Product designer driven by the moments when a product just works —
+      seamlessly, effortlessly, joyfully.
+    </p>
+  </section>
+
+  <section class="container" style="padding-bottom: var(--space-6);">
+    <div class="about-grid">
+      <div class="portrait">
+        <Image src={portrait} alt="Portrait of Daniel Epler Nuñez" widths={[480, 960]} sizes="(max-width: 880px) 22rem, 420px" />
+      </div>
+      <div class="about-body">
+        <p>
+          I'm an aspiring product designer passionate about creating products
+          that make a difference by providing meaningful and impactful user
+          experiences. I find great delight in discovering products and
+          services with exceptional user experiences — the ones that offer
+          seamless, effortless joy in their use. Those moments of delightful
+          interaction are what spark my curiosity and drive my passion for
+          design.
+        </p>
+        <p>
+          With a solid foundation in UX principles and hands-on skills in user
+          research and involvement, prototyping, and 3D CAD, I bring
+          innovative ideas to life — from the first field interview to the 3D
+          printed model in someone's hand. I hold an MSc in IT Product Design
+          and a BA in Information Studies, IT and Interaction Design.
+        </p>
+        <p>
+          I'm always seeking opportunities to learn and grow, and I'm excited
+          to create designs that support the way people communicate and
+          interact.
+        </p>
+
+        <h2 style="font-size: var(--step-2); margin: var(--space-4) 0 var(--space-2);">What I work with</h2>
+        <ul class="skills">
+          <li>User research</li>
+          <li>Participatory design</li>
+          <li>Prototyping</li>
+          <li>Usability testing</li>
+          <li>Figma</li>
+          <li>3D CAD · Fusion 360</li>
+          <li>3D printing</li>
+          <li>Interaction design</li>
+        </ul>
+
+        <a class="btn btn--solid" href="/contact">Get in touch <span class="arrow">→</span></a>
+      </div>
+    </div>
+  </section>
+
+  <section class="container" style="padding-bottom: var(--space-6);">
+    <div class="photo-strip reveal" style="grid-template-columns: repeat(4, 1fr);">
+      <Image src={strip1} alt="Daniel presenting design work" widths={[400]} sizes="280px" />
+      <Image src={strip2} alt="Prototyping session" widths={[400]} sizes="280px" />
+      <Image src={strip3} alt="Testing a cooking prototype" widths={[400]} sizes="280px" />
+      <Image src={strip4} alt="Workshop collaboration" widths={[400]} sizes="280px" />
+    </div>
+  </section>
+</BaseLayout>
