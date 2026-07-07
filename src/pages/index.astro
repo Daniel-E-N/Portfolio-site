@@ -28,7 +28,7 @@ const slugOf = (id: string) => id.split('/')[0];
           real user needs into meaningful products.
         <div class="hero-actions reveal" style="transition-delay: 0.3s">
           <a class="btn btn--solid" href="#work">See my work <span class="arrow">↓</span></a>
-          <a class="btn" href="/about">About me</a>
+          <a class="btn" href={`${import.meta.env.BASE_URL}about`}>About me</a>
         </div>
       </div>
       <div class="hero-portrait-wrapper reveal" style="transition-delay: 0.4s">
@@ -54,7 +54,7 @@ const slugOf = (id: string) => id.split('/')[0];
         projects.map((p, i) => (
           <a
             class="work-card reveal"
-            href={`/portfolio/${slugOf(p.id)}`}
+            href={`${import.meta.env.BASE_URL}portfolio/${slugOf(p.id)}`}
             data-theme={p.data.theme}
           >
             <div class="work-card__inner">
@@ -109,7 +109,7 @@ const slugOf = (id: string) => id.split('/')[0];
           3D CAD — driven by those moments when a product just works,
           effortlessly.
         </p>
-        <a class="btn" href="/about">More about me <span class="arrow">→</span></a>
+        <a class="btn" href={`${import.meta.env.BASE_URL}about`}>More about me <span class="arrow">→</span></a>
       </div>
       <div class="photo-strip">
         <Image src={strip1} alt="Daniel presenting design work" widths={[400]} sizes="280px" />

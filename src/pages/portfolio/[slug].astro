@@ -28,7 +28,7 @@ const isGallery = d.type === 'gallery';
     <!-- Hero -->
     <header class="case-hero">
       <div class="container">
-        <p class="crumbs"><a href="/#work">Work</a> / {d.title}</p>
+        <p class="crumbs"><a href={`${import.meta.env.BASE_URL}#work`}>Work</a> / {d.title}</p>
         <h1>{d.title}</h1>
         <p class="summary">{d.summary}</p>
         <dl class="case-meta">
@@ -82,7 +82,7 @@ const isGallery = d.type === 'gallery';
     }
 
     <!-- Next project -->
-    <a class="next-project" href={`/portfolio/${nextSlug}`} data-theme={next.data.theme}>
+    <a class="next-project" href={`${import.meta.env.BASE_URL}portfolio/${nextSlug}`} data-theme={next.data.theme}>
       <div class="container">
         <div>
           <span class="label">Next project</span>
