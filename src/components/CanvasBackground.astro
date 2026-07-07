@@ -48,6 +48,12 @@
     justify-content: center;
   }
 
+  @media (hover: none) and (pointer: coarse) {
+    #custom-cursor {
+      display: none !important;
+    }
+  }
+
   /* Solid dot */
   .cursor-dot {
     position: absolute;
@@ -127,6 +133,12 @@
     pointer-events: none; /* Let clicks pass through to the page */
     background: transparent;
     opacity: 0.35;
+  }
+
+  @media (hover: none) and (pointer: coarse) {
+    #attractor-canvas {
+      display: none !important;
+    }
   }
 </style>
 
@@ -423,17 +435,36 @@
       window.addEventListener("mouseup", this.onMouseUp);
 
       this.onTouchMove = (e) => {
+        if (window.matchMedia('(hover: none)').matches) return;
         if (e.touches.length === 0) return;
         this.pointer.x = e.touches[0].clientX;
         this.pointer.y = e.touches[0].clientY;
       };
       window.addEventListener("touchmove", this.onTouchMove, { passive: true });
       
-      this.onTouchStart = () => (this.pointer.isDown = true);
+      this.onTouchStart = () => {
+        if (window.matchMedia('(hover: none)').matches) return;
+        this.pointer.isDown = true;
+      };
       window.addEventListener("touchstart", this.onTouchStart, { passive: true });
       
-      this.onTouchEnd = () => (this.pointer.isDown = false);
+      this.onTouchEnd = () => {
+        if (window.matchMedia('(hover: none)').matches) return;
+        this.pointer.isDown = false;
+      };
       window.addEventListener("touchend", this.onTouchEnd);
+
+      this.onScroll = () => {
+        if (window.matchMedia('(hover: none)').matches) {
+          const scrollY = window.scrollY;
+          const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+          const scrollPercent = scrollY / maxScroll;
+          
+          this.pointer.y = window.innerHeight * scrollPercent;
+          this.pointer.x = window.innerWidth / 2 + Math.sin(scrollPercent * Math.PI * 4) * (window.innerWidth * 0.4);
+        }
+      };
+      window.addEventListener("scroll", this.onScroll, { passive: true });
     }
 
     destroy() {
@@ -446,6 +477,7 @@
       window.removeEventListener("touchmove", this.onTouchMove);
       window.removeEventListener("touchstart", this.onTouchStart);
       window.removeEventListener("touchend", this.onTouchEnd);
+      window.removeEventListener("scroll", this.onScroll);
     }
 
     loop() {
@@ -484,6 +516,8 @@
   let activeSimulation = null;
 
   function init() {
+    if (window.matchMedia('(hover: none) and (pointer: coarse)').matches) return;
+    
     const canvas = document.getElementById("attractor-canvas");
     if (canvas) {
       if (activeSimulation) {

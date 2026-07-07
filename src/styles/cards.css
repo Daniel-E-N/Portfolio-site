@@ -115,6 +115,14 @@
 .work-card:hover .work-orb-circle:nth-child(4) { transform: translate3d(0, 0, 95px); opacity: 1; }
 .work-card:hover .work-orb-circle:nth-child(5) { transform: translate3d(0, 0, 120px); opacity: 1; background: var(--theme); }
 
+@media (hover: none) and (pointer: coarse) {
+  .work-orb-circle:nth-child(1) { transform: translate3d(0, 0, 20px); opacity: 1; }
+  .work-orb-circle:nth-child(2) { transform: translate3d(0, 0, 45px); opacity: 1; }
+  .work-orb-circle:nth-child(3) { transform: translate3d(0, 0, 70px); opacity: 1; }
+  .work-orb-circle:nth-child(4) { transform: translate3d(0, 0, 95px); opacity: 1; }
+  .work-orb-circle:nth-child(5) { transform: translate3d(0, 0, 120px); opacity: 1; background: var(--theme); }
+}
+
 /* Custom Page Transition Effects */
 .work-card.is-active {
     z-index: 9999;
