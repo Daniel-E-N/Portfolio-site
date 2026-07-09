@@ -5,8 +5,8 @@ year: 2025
 collaborator: "Ztove"
 role: "Interaction design, Figma prototyping, 3D CAD"
 tags: ["UX research", "UI design", "Figma prototype", "3D CAD"]
-theme: "teal"
-order: 3
+theme: "sand"
+order: 2
 type: "case"
 cover: "./assets/cover.png"
 coverAlt: "Render of the redesigned cooktop with an integrated touchscreen"
@@ -24,6 +24,7 @@ gallery:
   - src: "./assets/render-top.png"
     alt: "Top view render of the cooktop with the display integrated"
 ---
+
 ## Challenge
 
 <p class="section-claim">cooking shouldn't be dual-screen</p>

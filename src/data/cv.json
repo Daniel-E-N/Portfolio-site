@@ -1,0 +1,689 @@
+{
+  "profile": {
+    "pageTitle": "CV — Daniel Epler Nuñez",
+    "metaDescription": "Curriculum vitae of Daniel Epler Nuñez — MSc in IT Product Design. UX, service design, AI, research, and facilitation.",
+    "heading": "CV.",
+    "lede": "MSc in IT Product Design working at the intersection of people, technology, and practice — moving from unclear needs to concrete, testable solutions.",
+    "facts": [
+      "Odense, Denmark",
+      "MSc IT Product Design · grade average 12",
+      "Danish · English · Spanish (professional)"
+    ],
+    "email": "danielepler93@gmail.com",
+    "downloadLabel": "Download as PDF"
+  },
+  "pdf": null,
+  "focusThemes": [
+    {
+      "id": "ux",
+      "label": "UX & Service Design",
+      "description": "",
+      "order": 1,
+      "visible": true
+    },
+    {
+      "id": "ai",
+      "label": "AI & Research",
+      "description": "",
+      "order": 2,
+      "visible": true
+    },
+    {
+      "id": "teach",
+      "label": "Teaching & Facilitation",
+      "description": "",
+      "order": 3,
+      "visible": true
+    }
+  ],
+  "skillCategories": [
+    {
+      "id": "ux-service",
+      "name": "UX & Service Design",
+      "description": "",
+      "order": 1,
+      "visible": true,
+      "themes": [
+        "ux"
+      ]
+    },
+    {
+      "id": "ai-research",
+      "name": "AI & Research",
+      "description": "",
+      "order": 2,
+      "visible": true,
+      "themes": [
+        "ai"
+      ]
+    },
+    {
+      "id": "facilitation",
+      "name": "Facilitation & Teaching",
+      "description": "",
+      "order": 3,
+      "visible": true,
+      "themes": [
+        "teach"
+      ]
+    },
+    {
+      "id": "tools",
+      "name": "Tools",
+      "description": "",
+      "order": 4,
+      "visible": true,
+      "themes": []
+    }
+  ],
+  "skills": [
+    {
+      "id": "sk-user-research",
+      "name": "User research",
+      "type": "skill",
+      "category": "ux-service",
+      "order": 1,
+      "visible": true,
+      "relatedRoles": [
+        "five",
+        "sdu-ai"
+      ],
+      "relatedEducation": [
+        "edu-msc",
+        "edu-ba"
+      ],
+      "relatedProjects": [],
+      "description": "User research test description"
+    },
+    {
+      "id": "sk-qual-interviews",
+      "name": "Qualitative interviews",
+      "type": "skill",
+      "category": "ux-service",
+      "order": 2,
+      "visible": true,
+      "relatedRoles": [
+        "five",
+        "sdu-ai"
+      ],
+      "relatedEducation": [
+        "edu-msc"
+      ],
+      "relatedProjects": []
+    },
+    {
+      "id": "sk-usability-testing",
+      "name": "Usability testing",
+      "type": "skill",
+      "category": "ux-service",
+      "order": 3,
+      "visible": true,
+      "relatedRoles": [
+        "five"
+      ],
+      "relatedEducation": [
+        "edu-ba"
+      ],
+      "relatedProjects": []
+    },
+    {
+      "id": "sk-journeys",
+      "name": "Customer & user journeys",
+      "type": "skill",
+      "category": "ux-service",
+      "order": 4,
+      "visible": true,
+      "relatedRoles": [
+        "five"
+      ],
+      "relatedEducation": [
+        "edu-ba"
+      ],
+      "relatedProjects": []
+    },
+    {
+      "id": "sk-service-blueprints",
+      "name": "Service blueprints",
+      "type": "skill",
+      "category": "ux-service",
+      "order": 5,
+      "visible": true,
+      "relatedRoles": [
+        "five"
+      ],
+      "relatedEducation": [],
+      "relatedProjects": []
+    },
+    {
+      "id": "sk-ia",
+      "name": "Information architecture",
+      "type": "skill",
+      "category": "ux-service",
+      "order": 6,
+      "visible": true,
+      "relatedRoles": [
+        "five"
+      ],
+      "relatedEducation": [
+        "edu-ba"
+      ],
+      "relatedProjects": []
+    },
+    {
+      "id": "sk-guidelines",
+      "name": "UI/UX guidelines",
+      "type": "skill",
+      "category": "ux-service",
+      "order": 7,
+      "visible": true,
+      "relatedRoles": [
+        "five"
+      ],
+      "relatedEducation": [],
+      "relatedProjects": []
+    },
+    {
+      "id": "sk-interaction-design",
+      "name": "Interaction design",
+      "type": "skill",
+      "category": "ux-service",
+      "order": 8,
+      "visible": true,
+      "relatedRoles": [
+        "five",
+        "tangible-instructor"
+      ],
+      "relatedEducation": [
+        "edu-ba"
+      ],
+      "relatedProjects": []
+    },
+    {
+      "id": "sk-prototyping",
+      "name": "Prototyping",
+      "type": "skill",
+      "category": "ux-service",
+      "order": 9,
+      "visible": true,
+      "relatedRoles": [
+        "five",
+        "tangible-instructor"
+      ],
+      "relatedEducation": [
+        "edu-msc",
+        "edu-ba"
+      ],
+      "relatedProjects": []
+    },
+    {
+      "id": "sk-codesign",
+      "name": "Co-design & participatory design",
+      "type": "skill",
+      "category": "ux-service",
+      "order": 10,
+      "visible": true,
+      "relatedRoles": [
+        "tangible-instructor"
+      ],
+      "relatedEducation": [
+        "edu-msc"
+      ],
+      "relatedProjects": []
+    },
+    {
+      "id": "sk-ai-practice",
+      "name": "AI & generative AI in practice",
+      "type": "skill",
+      "category": "ai-research",
+      "order": 1,
+      "visible": true,
+      "relatedRoles": [
+        "sdu-ai",
+        "tangible-instructor",
+        "tangible-research"
+      ],
+      "relatedEducation": [],
+      "relatedProjects": []
+    },
+    {
+      "id": "sk-explainable-ai",
+      "name": "Explainable AI & human-in-the-loop",
+      "type": "skill",
+      "category": "ai-research",
+      "order": 2,
+      "visible": true,
+      "relatedRoles": [
+        "tangible-instructor",
+        "tangible-research"
+      ],
+      "relatedEducation": [],
+      "relatedProjects": []
+    },
+    {
+      "id": "sk-tech-assessment",
+      "name": "Technology assessment",
+      "type": "skill",
+      "category": "ai-research",
+      "order": 3,
+      "visible": true,
+      "relatedRoles": [
+        "sdu-ai",
+        "tangible-research"
+      ],
+      "relatedEducation": [
+        "edu-msc"
+      ],
+      "relatedProjects": []
+    },
+    {
+      "id": "sk-friction-mapping",
+      "name": "Workflow & friction mapping",
+      "type": "skill",
+      "category": "ai-research",
+      "order": 4,
+      "visible": true,
+      "relatedRoles": [
+        "five",
+        "sdu-ai"
+      ],
+      "relatedEducation": [],
+      "relatedProjects": []
+    },
+    {
+      "id": "sk-qual-analysis",
+      "name": "Qualitative analysis",
+      "type": "skill",
+      "category": "ai-research",
+      "order": 5,
+      "visible": true,
+      "relatedRoles": [
+        "sdu-ai"
+      ],
+      "relatedEducation": [
+        "edu-msc"
+      ],
+      "relatedProjects": []
+    },
+    {
+      "id": "sk-lit-reviews",
+      "name": "Literature reviews",
+      "type": "skill",
+      "category": "ai-research",
+      "order": 6,
+      "visible": true,
+      "relatedRoles": [
+        "tangible-research"
+      ],
+      "relatedEducation": [
+        "edu-msc"
+      ],
+      "relatedProjects": []
+    },
+    {
+      "id": "sk-strategic-recs",
+      "name": "Strategic recommendations",
+      "type": "skill",
+      "category": "ai-research",
+      "order": 7,
+      "visible": true,
+      "relatedRoles": [
+        "five",
+        "sdu-ai"
+      ],
+      "relatedEducation": [],
+      "relatedProjects": []
+    },
+    {
+      "id": "sk-workshops",
+      "name": "Workshop design & facilitation",
+      "type": "skill",
+      "category": "facilitation",
+      "order": 1,
+      "visible": true,
+      "relatedRoles": [
+        "sdu-ai",
+        "tangible-instructor"
+      ],
+      "relatedEducation": [],
+      "relatedProjects": []
+    },
+    {
+      "id": "sk-instructional",
+      "name": "Instructional design",
+      "type": "skill",
+      "category": "facilitation",
+      "order": 2,
+      "visible": true,
+      "relatedRoles": [
+        "tangible-instructor"
+      ],
+      "relatedEducation": [],
+      "relatedProjects": []
+    },
+    {
+      "id": "sk-supervision",
+      "name": "Project supervision",
+      "type": "skill",
+      "category": "facilitation",
+      "order": 3,
+      "visible": true,
+      "relatedRoles": [
+        "tangible-instructor"
+      ],
+      "relatedEducation": [],
+      "relatedProjects": []
+    },
+    {
+      "id": "sk-stakeholder",
+      "name": "Stakeholder involvement",
+      "type": "skill",
+      "category": "facilitation",
+      "order": 4,
+      "visible": true,
+      "relatedRoles": [
+        "sdu-ai",
+        "tangible-instructor"
+      ],
+      "relatedEducation": [
+        "edu-msc"
+      ],
+      "relatedProjects": []
+    },
+    {
+      "id": "sk-communication",
+      "name": "Clear communication",
+      "type": "skill",
+      "category": "facilitation",
+      "order": 5,
+      "visible": true,
+      "relatedRoles": [
+        "ambassador",
+        "pedagogy",
+        "sdu-ai"
+      ],
+      "relatedEducation": [],
+      "relatedProjects": []
+    },
+    {
+      "id": "sk-figma",
+      "name": "Figma",
+      "type": "tool",
+      "category": "tools",
+      "order": 1,
+      "visible": true,
+      "relatedRoles": [
+        "five"
+      ],
+      "relatedEducation": [
+        "edu-msc",
+        "edu-ba"
+      ],
+      "relatedProjects": []
+    },
+    {
+      "id": "sk-adobe",
+      "name": "Adobe Illustrator & Photoshop",
+      "type": "tool",
+      "category": "tools",
+      "order": 2,
+      "visible": true,
+      "relatedRoles": [],
+      "relatedEducation": [
+        "edu-ba"
+      ],
+      "relatedProjects": []
+    },
+    {
+      "id": "sk-cad",
+      "name": "3D CAD & 3D printing",
+      "type": "tool",
+      "category": "tools",
+      "order": 3,
+      "visible": true,
+      "relatedRoles": [],
+      "relatedEducation": [
+        "edu-msc"
+      ],
+      "relatedProjects": []
+    },
+    {
+      "id": "sk-htmlcss",
+      "name": "HTML & CSS",
+      "type": "tool",
+      "category": "tools",
+      "order": 4,
+      "visible": true,
+      "relatedRoles": [],
+      "relatedEducation": [
+        "edu-ba"
+      ],
+      "relatedProjects": []
+    },
+    {
+      "id": "sk-lowcode",
+      "name": "Low-code prototyping",
+      "type": "tool",
+      "category": "tools",
+      "order": 5,
+      "visible": true,
+      "relatedRoles": [
+        "five",
+        "tangible-instructor"
+      ],
+      "relatedEducation": [],
+      "relatedProjects": []
+    },
+    {
+      "id": "sk-wordpress",
+      "name": "WordPress",
+      "type": "tool",
+      "category": "tools",
+      "order": 6,
+      "visible": true,
+      "relatedRoles": [],
+      "relatedEducation": [],
+      "relatedProjects": []
+    }
+  ],
+  "experience": [
+    {
+      "id": "five",
+      "title": "UX Design Consultant",
+      "org": "FIVE",
+      "city": "Odense",
+      "start": "Dec 2025",
+      "end": "Jan 2026",
+      "current": false,
+      "summary": "Advised small and medium-sized companies on digital products, user experience, and customer satisfaction — from journey mapping to concrete, implementable improvement proposals.",
+      "bullets": [
+        "Redesigned a health app’s onboarding flow, cutting the process from 18 steps to 3.",
+        "Mapped customer journeys, built a service blueprint, and restructured the website for Odense Sportscentrum so users could find information and complete tasks faster.",
+        "Prepared design principles and UI/UX guidelines for consistent implementation of design changes."
+      ],
+      "details": [
+        "Mapped digital user journeys and identified friction in central touchpoints.",
+        "Ran surveys to ground improvement proposals in user data.",
+        "Built prototypes with low-code tools and translated user insights into concrete proposals."
+      ],
+      "themes": [
+        "ux"
+      ],
+      "relatedProjects": [],
+      "order": 1,
+      "visible": true
+    },
+    {
+      "id": "sdu-ai",
+      "title": "Project Assistant — AI, Design & Employability",
+      "org": "University of Southern Denmark",
+      "city": "Kolding",
+      "start": "Nov 2024",
+      "end": "Jun 2025",
+      "current": false,
+      "summary": "Research role on how AI and generative AI reshape workflows, competency needs, and educational strategy.",
+      "bullets": [
+        "Mapped the use of AI and generative AI across companies, public organisations, and industries.",
+        "Interviewed professionals in healthcare, robotics, technology, telecom, and public services; analysed the data for AI-related competency needs.",
+        "Translated research into workshops, presentations, recommendations, and strategic directions for MSc programmes."
+      ],
+      "details": [
+        "Planned and facilitated workshops for educators, leaders, faculty staff, and collaborators.",
+        "Contributed to strategic initiatives on practice-oriented AI competencies.",
+        "Communicated findings to researchers, educators, and interdisciplinary collaborators."
+      ],
+      "themes": [
+        "ai",
+        "teach"
+      ],
+      "relatedProjects": [],
+      "order": 2,
+      "visible": true
+    },
+    {
+      "id": "tangible-instructor",
+      "title": "Instructor — Tangible AI",
+      "org": "University of Southern Denmark",
+      "city": "Kolding",
+      "start": "Aug 2024",
+      "end": "Jan 2025",
+      "current": false,
+      "summary": "Teaching, workshop design, and project supervision — communicating AI as a design material.",
+      "bullets": [
+        "Developed lesson plans, slides, teaching material, and hands-on activities that made complex AI concepts applicable.",
+        "Supervised student AI design projects from idea and research to prototype, testing, and presentation — with company cases from Aduro, LINAK, and Ztove.",
+        "Guided projects with attention to value, complexity, cost, risk, and ethics; managed dialogue between students and industry partners."
+      ],
+      "details": [
+        "Methods and themes: Tangible AI, data tinkering, AI design sprints, explainable AI, human-in-the-loop, graspable AI.",
+        "Prototyping with Micro:bit and low-code tools."
+      ],
+      "themes": [
+        "teach",
+        "ai"
+      ],
+      "relatedProjects": [],
+      "order": 3,
+      "visible": true
+    },
+    {
+      "id": "tangible-research",
+      "title": "Research Assistant — Tangible AI Design",
+      "org": "University of Southern Denmark",
+      "city": "Kolding",
+      "start": "Mar 2024",
+      "end": "Sep 2024",
+      "current": false,
+      "summary": "Mapping how AI can be integrated into physical products, interactive systems, and design education.",
+      "bullets": [
+        "Conducted literature reviews on AI in physical products, interactive systems, and design processes.",
+        "Translated complex research insights into design strategies, workshops, teaching material, and reporting.",
+        "Contributed to articles, reports, and academic-industrial collaboration projects."
+      ],
+      "details": [],
+      "themes": [
+        "ai"
+      ],
+      "relatedProjects": [],
+      "order": 4,
+      "visible": true
+    },
+    {
+      "id": "ambassador",
+      "title": "Student Ambassador",
+      "org": "University of Southern Denmark",
+      "city": "Kolding",
+      "start": "Jan 2024",
+      "end": "Apr 2025",
+      "current": false,
+      "summary": "First point of contact for prospective students — clear, helpful communication by email and online meetings.",
+      "bullets": [
+        "Guided prospective students through programmes, admission, exams, housing, and the transition into student life.",
+        "Communicated complex or unclear information to people with very different needs."
+      ],
+      "details": [],
+      "themes": [
+        "teach"
+      ],
+      "relatedProjects": [],
+      "order": 5,
+      "visible": true
+    },
+    {
+      "id": "pedagogy",
+      "title": "Pedagogical Assistant & Youth Club Assistant",
+      "org": "Odense Municipality",
+      "city": "Regnbuen/Vestermarken · Faaborg Juniorklub",
+      "start": "2014",
+      "end": "2018",
+      "current": false,
+      "summary": "Relationship work with children and young people — the foundation of my communication and facilitation skills.",
+      "bullets": [
+        "Built trust and clear communication channels with children, parents, and colleagues.",
+        "Worked calmly and adaptively in busy environments, handling conflicts fairly."
+      ],
+      "details": [],
+      "themes": [
+        "teach"
+      ],
+      "relatedProjects": [],
+      "order": 6,
+      "visible": true
+    }
+  ],
+  "education": [
+    {
+      "id": "edu-msc",
+      "title": "MSc in IT — Product Design",
+      "institution": "University of Southern Denmark",
+      "city": "Kolding ",
+      "start": "2023",
+      "end": "2025",
+      "current": false,
+      "note": "Grade average: 12 · Completed in English",
+      "body": "Practice-oriented, interdisciplinary programme on designing technologies, products, and services from user needs, context, and the interplay of people, organisations, and practice. Thesis in collaboration with Ztove on smart kitchen technology.",
+      "themes": [],
+      "relatedProjects": [],
+      "order": 1,
+      "visible": true,
+      "courses": []
+    },
+    {
+      "id": "edu-ba",
+      "title": "BA in Information Studies, IT & Interaction Design",
+      "institution": "University of Southern Denmark",
+      "city": "Kolding",
+      "start": "2019",
+      "end": "2023",
+      "current": false,
+      "note": "Grade average: 9.8",
+      "body": "UX, usability, interaction design, user research, prototyping, and web technology — designing digital solutions from user needs and behaviour.",
+      "themes": [],
+      "relatedProjects": [],
+      "order": 2,
+      "visible": true,
+      "courses": []
+    }
+  ],
+  "projects": [
+    {
+      "slug": "smart-temperature-probe",
+      "order": 1,
+      "visible": true
+    },
+    {
+      "slug": "smart-cooktop",
+      "order": 2,
+      "visible": true
+    },
+    {
+      "slug": "hospital-bed-remote",
+      "order": 3,
+      "visible": true
+    },
+    {
+      "slug": "focus-lamp",
+      "order": 4,
+      "visible": true
+    }
+  ]
+}

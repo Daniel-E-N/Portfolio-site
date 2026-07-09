@@ -5,8 +5,8 @@ year: 2024
 collaborator: "LINAK"
 role: "UX research, prototyping, 3D CAD & print"
 tags: ["Accessibility", "UX research", "Physical prototyping", "3D CAD"]
-theme: "#b380ae"
-order: 1
+theme: "blue"
+order: 3
 type: "case"
 cover: "./assets/cover.webp"
 coverAlt: "Render of the redesigned hospital bed remote"

@@ -1,241 +1,95 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+import cv from '../data/cv.json';
 
 /**
- * Interactive CV — data is hardcoded here by design (single source of truth
- * is master_cv_en.md; update both when things change).
+ * Interactive CV — content is managed in src/data/cv.json via the CMS
+ * ("Interactive CV" tab, tools/cms.mjs). This page derives its display
+ * arrays from that data and keeps the original structure, styling and
+ * filtering behaviour.
  *
- * cats: 'ux' | 'ai' | 'teach' — used by the Focus bar (dims, never hides).
- * Chip `roles` reference role/education ids — selecting skills (multi-select)
- * highlights the connected entries below.
+ * cats: focus-theme ids — used by the Focus bar (dims, never hides).
+ * Chip `roles` reference experience/education ids — selecting skills
+ * (multi-select) highlights the connected entries below.
  */
 
-type Cat = 'ux' | 'ai' | 'teach';
+const byOrder = (a: any, b: any) => (a.order ?? 99) - (b.order ?? 99);
+const vis = (x: any) => x.visible !== false;
+const compose = (a: string, b?: string) => (b ? `${a} · ${b}` : a);
+const range = (s: string, e: string, current?: boolean) =>
+  current ? `${s} – Present` : e ? `${s} – ${e}` : s;
 
-const roles: {
-  id: string;
-  title: string;
-  org: string;
-  dates: string;
-  cats: Cat[];
-  summary: string;
-  bullets: string[];
-  details?: string[];
-}[] = [
-  {
-    id: 'five',
-    title: 'UX Design Consultant',
-    org: 'FIVE · Odense',
-    dates: 'Dec 2025 – Jan 2026',
-    cats: ['ux'],
-    summary:
-      'Advised small and medium-sized companies on digital products, user experience, and customer satisfaction — from journey mapping to concrete, implementable improvement proposals.',
-    bullets: [
-      'Redesigned a health app’s onboarding flow, cutting the process from 18 steps to 3.',
-      'Mapped customer journeys, built a service blueprint, and restructured the website for Odense Sportscentrum so users could find information and complete tasks faster.',
-      'Prepared design principles and UI/UX guidelines for consistent implementation of design changes.',
-    ],
-    details: [
-      'Mapped digital user journeys and identified friction in central touchpoints.',
-      'Ran surveys to ground improvement proposals in user data.',
-      'Built prototypes with low-code tools and translated user insights into concrete proposals.',
-    ],
-  },
-  {
-    id: 'sdu-ai',
-    title: 'Project Assistant — AI, Design & Employability',
-    org: 'University of Southern Denmark · Kolding',
-    dates: 'Nov 2024 – Jun 2025',
-    cats: ['ai', 'teach'],
-    summary:
-      'Research role on how AI and generative AI reshape workflows, competency needs, and educational strategy.',
-    bullets: [
-      'Mapped the use of AI and generative AI across companies, public organisations, and industries.',
-      'Interviewed professionals in healthcare, robotics, technology, telecom, and public services; analysed the data for AI-related competency needs.',
-      'Translated research into workshops, presentations, recommendations, and strategic directions for MSc programmes.',
-    ],
-    details: [
-      'Planned and facilitated workshops for educators, leaders, faculty staff, and collaborators.',
-      'Contributed to strategic initiatives on practice-oriented AI competencies.',
-      'Communicated findings to researchers, educators, and interdisciplinary collaborators.',
-    ],
-  },
-  {
-    id: 'tangible-instructor',
-    title: 'Instructor — Tangible AI',
-    org: 'University of Southern Denmark · Kolding',
-    dates: 'Aug 2024 – Jan 2025',
-    cats: ['teach', 'ai'],
-    summary:
-      'Teaching, workshop design, and project supervision — communicating AI as a design material.',
-    bullets: [
-      'Developed lesson plans, slides, teaching material, and hands-on activities that made complex AI concepts applicable.',
-      'Supervised student AI design projects from idea and research to prototype, testing, and presentation — with company cases from Aduro, LINAK, and Ztove.',
-      'Guided projects with attention to value, complexity, cost, risk, and ethics; managed dialogue between students and industry partners.',
-    ],
-    details: [
-      'Methods and themes: Tangible AI, data tinkering, AI design sprints, explainable AI, human-in-the-loop, graspable AI.',
-      'Prototyping with Micro:bit and low-code tools.',
-    ],
-  },
-  {
-    id: 'tangible-research',
-    title: 'Research Assistant — Tangible AI Design',
-    org: 'University of Southern Denmark · Kolding',
-    dates: 'Mar 2024 – Sep 2024',
-    cats: ['ai'],
-    summary:
-      'Mapping how AI can be integrated into physical products, interactive systems, and design education.',
-    bullets: [
-      'Conducted literature reviews on AI in physical products, interactive systems, and design processes.',
-      'Translated complex research insights into design strategies, workshops, teaching material, and reporting.',
-      'Contributed to articles, reports, and academic-industrial collaboration projects.',
-    ],
-  },
-  {
-    id: 'ambassador',
-    title: 'Student Ambassador',
-    org: 'University of Southern Denmark · Kolding',
-    dates: 'Jan 2024 – Apr 2025',
-    cats: ['teach'],
-    summary:
-      'First point of contact for prospective students — clear, helpful communication by email and online meetings.',
-    bullets: [
-      'Guided prospective students through programmes, admission, exams, housing, and the transition into student life.',
-      'Communicated complex or unclear information to people with very different needs.',
-    ],
-  },
-  {
-    id: 'pedagogy',
-    title: 'Pedagogical Assistant & Youth Club Assistant',
-    org: 'Odense Municipality · Regnbuen/Vestermarken · Faaborg Juniorklub',
-    dates: '2014 – 2018',
-    cats: ['teach'],
-    summary:
-      'Relationship work with children and young people — the foundation of my communication and facilitation skills.',
-    bullets: [
-      'Built trust and clear communication channels with children, parents, and colleagues.',
-      'Worked calmly and adaptively in busy environments, handling conflicts fairly.',
-    ],
-  },
-];
+const profile = cv.profile;
+const pdf = cv.pdf as { file: string } | null;
 
-const education = [
-  {
-    id: 'edu-msc',
-    title: 'MSc in IT — Product Design',
-    org: 'University of Southern Denmark',
-    dates: '2023 – 2025',
-    note: 'Grade average: 12 · Completed in English',
-    body: 'Practice-oriented, interdisciplinary programme on designing technologies, products, and services from user needs, context, and the interplay of people, organisations, and practice. Thesis in collaboration with Ztove on smart kitchen technology.',
-  },
-  {
-    id: 'edu-ba',
-    title: 'BA in Information Studies, IT & Interaction Design',
-    org: 'University of Southern Denmark',
-    dates: '2019 – 2023',
-    note: 'Grade average: 9.8',
-    body: 'UX, usability, interaction design, user research, prototyping, and web technology — designing digital solutions from user needs and behaviour.',
-  },
-];
+/* project slug → title, pulled from the real projects collection (no duplication) */
+const projectEntries = await getCollection('projects');
+const projectTitle = new Map(projectEntries.map((e) => [e.id.split('/')[0], e.data.title]));
 
-/* Skill → experience/education connections. Educations count as connections
-   so the highlight tells the full story of where a skill comes from. */
-const skillGroups: {
-  name: string;
-  cats: Cat[];
-  chips: { label: string; roles?: string[] }[];
-}[] = [
-  {
-    name: 'UX & Service Design',
-    cats: ['ux'],
-    chips: [
-      { label: 'User research', roles: ['five', 'sdu-ai', 'edu-msc', 'edu-ba'] },
-      { label: 'Qualitative interviews', roles: ['five', 'sdu-ai', 'edu-msc'] },
-      { label: 'Usability testing', roles: ['five', 'edu-ba'] },
-      { label: 'Customer & user journeys', roles: ['five', 'edu-ba'] },
-      { label: 'Service blueprints', roles: ['five'] },
-      { label: 'Information architecture', roles: ['five', 'edu-ba'] },
-      { label: 'UI/UX guidelines', roles: ['five'] },
-      { label: 'Interaction design', roles: ['five', 'tangible-instructor', 'edu-ba'] },
-      { label: 'Prototyping', roles: ['five', 'tangible-instructor', 'edu-msc', 'edu-ba'] },
-      { label: 'Co-design & participatory design', roles: ['tangible-instructor', 'edu-msc'] },
-    ],
-  },
-  {
-    name: 'AI & Research',
-    cats: ['ai'],
-    chips: [
-      { label: 'AI & generative AI in practice', roles: ['sdu-ai', 'tangible-instructor', 'tangible-research'] },
-      { label: 'Explainable AI & human-in-the-loop', roles: ['tangible-instructor', 'tangible-research'] },
-      { label: 'Technology assessment', roles: ['sdu-ai', 'tangible-research', 'edu-msc'] },
-      { label: 'Workflow & friction mapping', roles: ['five', 'sdu-ai'] },
-      { label: 'Qualitative analysis', roles: ['sdu-ai', 'edu-msc'] },
-      { label: 'Literature reviews', roles: ['tangible-research', 'edu-msc'] },
-      { label: 'Strategic recommendations', roles: ['five', 'sdu-ai'] },
-    ],
-  },
-  {
-    name: 'Facilitation & Teaching',
-    cats: ['teach'],
-    chips: [
-      { label: 'Workshop design & facilitation', roles: ['sdu-ai', 'tangible-instructor'] },
-      { label: 'Instructional design', roles: ['tangible-instructor'] },
-      { label: 'Project supervision', roles: ['tangible-instructor'] },
-      { label: 'Stakeholder involvement', roles: ['sdu-ai', 'tangible-instructor', 'edu-msc'] },
-      { label: 'Clear communication', roles: ['ambassador', 'pedagogy', 'sdu-ai'] },
-    ],
-  },
-  {
-    name: 'Tools',
-    cats: [],
-    chips: [
-      { label: 'Figma', roles: ['five', 'edu-msc', 'edu-ba'] },
-      { label: 'Adobe Illustrator & Photoshop', roles: ['edu-ba'] },
-      { label: '3D CAD & 3D printing', roles: ['edu-msc'] },
-      { label: 'HTML & CSS', roles: ['edu-ba'] },
-      { label: 'Low-code prototyping', roles: ['five', 'tangible-instructor'] },
-      { label: 'WordPress' },
-    ],
-  },
-];
+const focusThemes = [...cv.focusThemes].filter(vis).sort(byOrder);
+const filters = [{ id: 'all', label: 'Everything' }, ...focusThemes.map((t) => ({ id: t.id, label: t.label }))];
 
-const projects = [
-  { title: 'Smart Temperature Probe', slug: 'smart-temperature-probe' },
-  { title: 'Smart Cooktop', slug: 'smart-cooktop' },
-  { title: 'Hospital Bed Remote', slug: 'hospital-bed-remote' },
-  { title: 'Focus Lamp', slug: 'focus-lamp' },
-];
+const roles = [...cv.experience].filter(vis).sort(byOrder).map((r) => ({
+  id: r.id,
+  title: r.title,
+  org: compose(r.org, r.city),
+  dates: range(r.start, r.end, r.current),
+  cats: r.themes || [],
+  summary: r.summary,
+  bullets: r.bullets || [],
+  details: r.details && r.details.length ? r.details : undefined,
+}));
 
-const filters: { id: string; label: string }[] = [
-  { id: 'all', label: 'Everything' },
-  { id: 'ux', label: 'UX & Service Design' },
-  { id: 'ai', label: 'AI & Research' },
-  { id: 'teach', label: 'Teaching & Facilitation' },
-];
+const education = [...cv.education].filter(vis).sort(byOrder).map((e) => ({
+  id: e.id,
+  title: e.title,
+  org: compose(e.institution, e.city),
+  dates: range(e.start, e.end, e.current),
+  note: e.note,
+  body: e.body,
+}));
+
+const skillsByCat = new Map<string, any[]>();
+for (const s of [...cv.skills].filter(vis).sort(byOrder)) {
+  if (!skillsByCat.has(s.category)) skillsByCat.set(s.category, []);
+  skillsByCat.get(s.category)!.push(s);
+}
+const skillGroups = [...cv.skillCategories].filter(vis).sort(byOrder).map((c) => ({
+  name: c.name,
+  cats: c.themes || [],
+  chips: (skillsByCat.get(c.id) || []).map((s) => {
+    const ids = [...(s.relatedRoles || []), ...(s.relatedEducation || [])];
+    return ids.length ? { label: s.name, roles: ids } : { label: s.name };
+  }),
+}));
+
+const projects = [...cv.projects].filter(vis).sort(byOrder).map((p) => ({
+  title: projectTitle.get(p.slug) || p.slug,
+  slug: p.slug,
+}));
 ---
 
 <BaseLayout
-  title="CV — Daniel Epler Nuñez"
-  description="Curriculum vitae of Daniel Epler Nuñez — MSc in IT Product Design. UX, service design, AI, research, and facilitation."
+  title={profile.pageTitle}
+  description={profile.metaDescription}
   current="cv"
 >
   <div class="cv-page" data-filter="all">
     <!-- Hero -->
     <section class="page-hero container">
-      <h1>Curriculum Vitae</h1>
-      <p class="lede">
-        MSc in IT Product Design working at the intersection of people, technology,
-        and practice — moving from unclear needs to concrete, testable solutions.
-      </p>
+      <h1>{profile.heading}</h1>
+      <p class="lede">{profile.lede}</p>
       <ul class="cv-facts" aria-label="Quick facts">
-        <li>Odense, Denmark</li>
-        <li>MSc IT Product Design · grade average 12</li>
-        <li>Danish · English · Spanish (professional)</li>
+        {profile.facts.map((f) => <li>{f}</li>)}
       </ul>
       <div class="cv-actions">
-        <button class="btn btn--solid" id="cv-print">Download as PDF <span class="arrow">↓</span></button>
-        <a class="btn" href="mailto:danielepler93@gmail.com?subject=From%20your%20CV%20page">Email me <span class="arrow">→</span></a>
+        {pdf ? (
+          <a class="btn btn--solid" href={`${import.meta.env.BASE_URL}/${pdf.file}`} download>{profile.downloadLabel} <span class="arrow">↓</span></a>
+        ) : (
+          <button class="btn btn--solid" id="cv-print">{profile.downloadLabel} <span class="arrow">↓</span></button>
+        )}
+        <a class="btn" href={`mailto:${profile.email}?subject=From%20your%20CV%20page`}>Email me <span class="arrow">→</span></a>
       </div>
     </section>
 
