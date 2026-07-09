@@ -6,7 +6,7 @@ collaborator: "Ztove"
 role: "Research, prototyping, 3D CAD"
 tags: ["Master's thesis", "UX research", "Prototyping", "3D CAD"]
 theme: "teal"
-order: 1
+order: 2
 type: "case"
 cover: "./assets/cover.webp"
 coverAlt: "Render of the temperature probe resting in its frosted storage tray"
