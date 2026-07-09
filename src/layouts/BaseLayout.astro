@@ -1,6 +1,8 @@
 ---
 import '../styles/global.css';
 import Header from '../components/Header.astro';
+import CustomCursor from '../components/CustomCursor.astro';
+import CanvasBackground from '../components/CanvasBackground.astro';
 import Footer from '../components/Footer.astro';
 import { ClientRouter } from 'astro:transitions';
 
@@ -8,13 +10,16 @@ interface Props {
   title: string;
   description?: string;
   /** id of the nav item to mark as current */
-  current?: 'work' | 'about' | 'contact';
+  current?: 'work' | 'about' | 'contact' | 'cv';
+  /** Project accent theme (preset name or custom hex), passed to the header */
+  theme?: string;
 }
 
 const {
   title,
   description = 'Daniel Epler Nuñez — product designer blending UX principles, practical design skills, and thoughtful product innovation.',
   current,
+  theme,
 } = Astro.props;
 ---
 
@@ -50,8 +55,10 @@ const {
     <ClientRouter />
   </head>
   <body>
+    <CustomCursor />
+    <CanvasBackground />
     <a class="skip-link" href="#main">Skip to content</a>
-    <Header current={current} />
+    <Header current={current} theme={theme} />
     <main id="main">
       <slot />
     </main>
@@ -62,29 +69,44 @@ const {
         // Smart Header: hide on scroll down, show on scroll up
         const header = document.querySelector('.site-header');
         let lastScrollY = window.scrollY;
+        let downAcc = 0;
+
+        const setHidden = (hidden: boolean) => {
+          header?.classList.toggle('is-hidden', hidden);
+          document.documentElement.classList.toggle('header-hidden', hidden);
+        };
+
+        let upAcc = 0;
 
         const onScroll = () => {
           const currentScrollY = window.scrollY;
-          
+          const delta = currentScrollY - lastScrollY;
+
           // Add shadow if scrolled past top
           header?.classList.toggle('is-scrolled', currentScrollY > 8);
 
-          // Hide on scroll down, show on scroll up
-          if (currentScrollY > 200) {
-            if (currentScrollY > lastScrollY) {
-              header?.classList.add('is-hidden');
-            } else {
-              header?.classList.remove('is-hidden');
-            }
-          } else {
-            header?.classList.remove('is-hidden');
+          if (currentScrollY <= 120) {
+            downAcc = 0;
+            upAcc = 0;
+            setHidden(false);
+          } else if (delta > 0) {
+            // Follow the down-scroll for a bit, then slide away
+            upAcc = 0;
+            downAcc += delta;
+            if (downAcc > 160) setHidden(true);
+          } else if (delta < 0) {
+            // Snap back on any real upward intent (trackpad-friendly)
+            downAcc = 0;
+            upAcc += -delta;
+            if (upAcc > 6) setHidden(false);
           }
-          
+
           lastScrollY = currentScrollY;
         };
         
         onScroll();
-        window.addEventListener('scroll', onScroll, { passive: true });
+        // Capture phase: fires no matter which element is the scroll container
+        document.addEventListener('scroll', onScroll, { capture: true, passive: true });
 
         // Mobile menu
         const toggle = document.querySelector('.menu-toggle');

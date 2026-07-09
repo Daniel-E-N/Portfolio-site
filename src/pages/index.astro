@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 import { Image } from 'astro:assets';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import CanvasBackground from '../components/CanvasBackground.astro';
+import { resolveTheme } from '../lib/theme';
 
 import portrait from '../assets/portrait.png';
 import strip1 from '../assets/photo-strip-1.webp';
@@ -17,7 +17,6 @@ const slugOf = (id: string) => id.split('/')[0];
 ---
 
 <BaseLayout title="Daniel Epler Nuñez — Product Designer" current="work">
-  <CanvasBackground />
   <section class="hero container">
     <div class="hero-grid">
       <div>
@@ -55,12 +54,11 @@ const slugOf = (id: string) => id.split('/')[0];
           <a
             class="work-card reveal"
             href={`${import.meta.env.BASE_URL}/portfolio/${slugOf(p.id)}`}
-            data-theme={p.data.theme}
-            style={
+            data-theme={resolveTheme(p.data.theme).attr}
+            style={((resolveTheme(p.data.theme).style ?? '') + ' ' + (
               slugOf(p.id) === 'focus-lamp' ? '--obj-pos: calc(50% + 15px) bottom; --obj-scale: 1.25;' :
               slugOf(p.id) === 'hospital-bed-remote' ? '--obj-fit: contain; --obj-pos: bottom;' :
-              ''
-            }
+              '')).trim()}
           >
             <div class="work-card__inner">
               <div class="work-orb" aria-hidden="true">

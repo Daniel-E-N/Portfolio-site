@@ -2,6 +2,7 @@
 import { getCollection, render } from 'astro:content';
 import { Image } from 'astro:assets';
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import { resolveTheme } from '../../lib/theme';
 
 export async function getStaticPaths() {
   const projects = (await getCollection('projects')).sort(
@@ -17,14 +18,22 @@ export async function getStaticPaths() {
 }
 
 const { entry, next } = Astro.props;
-const { Content } = await render(entry);
+const { Content, headings } = await render(entry);
 const d = entry.data;
 const nextSlug = next.id.split('/')[0];
+const theme = resolveTheme(d.theme);
+const nextTheme = resolveTheme(next.data.theme);
 const isGallery = d.type === 'gallery';
+const toc = headings.filter((h) => h.depth === 2);
+const hasSnapshot = Boolean(d.snapshot);
+/** The cover leads the gallery; there is no separate cover block */
+const slides = [{ src: d.cover, alt: d.coverAlt }, ...d.gallery];
+/** Headings follow a "Label — claim" convention; the TOC shows just the label */
+const tocLabel = (t: string) => t.split('—')[0].trim().replace(/[:.,]$/, '');
 ---
 
-<BaseLayout title={`${d.title} — Daniel Epler Nuñez`} description={d.summary} current="work">
-  <article data-theme={d.theme}>
+<BaseLayout title={`${d.title} — Daniel Epler Nuñez`} description={d.summary} current="work" theme={d.theme}>
+  <article data-theme={theme.attr} style={theme.style}>
     <!-- Hero -->
     <header class="case-hero">
       <div class="container">
@@ -40,7 +49,46 @@ const isGallery = d.type === 'gallery';
         {
           !isGallery && (
             <div class="case-cover">
-              <Image src={d.cover} alt={d.coverAlt} widths={[800, 1400, 2000]} sizes="(max-width: 1240px) 94vw, 1160px" loading="eager" />
+              {slides.length > 1 ? (
+                <div class="gallery">
+                  <div
+                    class="gallery-stage"
+                    tabindex="0"
+                    role="group"
+                    aria-roledescription="carousel"
+                    aria-label={`${d.title} image gallery — use arrow keys or swipe`}
+                  >
+                    {slides.map((g, i) => (
+                      <Image
+                        src={g.src}
+                        alt={g.alt}
+                        widths={[800, 1400, 2000]}
+                        sizes="(max-width: 1240px) 94vw, 1160px"
+                        class={`gallery-slide lightboxable${i === 0 ? ' is-current' : ''}`}
+                        loading={i === 0 ? 'eager' : 'lazy'}
+                      />
+                    ))}
+                    <button class="gallery-arrow prev" aria-label="Previous image">←</button>
+                    <button class="gallery-arrow next" aria-label="Next image">→</button>
+                    <p class="gallery-count" aria-hidden="true"><span class="cur">1</span>&thinsp;/&thinsp;{slides.length}</p>
+                  </div>
+                  <div class="gallery-thumbs">
+                    <button class="thumb-arrow prev" aria-label="Show previous thumbnails" hidden>←</button>
+                    <div class="gallery-thumbs-viewport">
+                      <div class="gallery-thumbs-track">
+                        {slides.map((g, i) => (
+                          <button class={`gallery-thumb${i === 0 ? ' is-current' : ''}`} aria-label={`Show image ${i + 1}: ${g.alt}`}>
+                            <Image src={g.src} alt="" widths={[300]} sizes="160px" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <button class="thumb-arrow next" aria-label="Show more thumbnails" hidden>→</button>
+                  </div>
+                </div>
+              ) : (
+                <Image src={d.cover} alt={d.coverAlt} widths={[800, 1400, 2000]} sizes="(max-width: 1240px) 94vw, 1160px" loading="eager" />
+              )}
             </div>
           )
         }
@@ -63,16 +111,40 @@ const isGallery = d.type === 'gallery';
         </section>
       ) : (
         <>
-          {d.gallery.length > 0 && (
-            <section class="section container">
-              <div class="case-gallery reveal" aria-label={`${d.title} image gallery`}>
-                {d.gallery.map((g) => (
-                  <Image src={g.src} alt={g.alt} widths={[560, 900]} sizes="24rem" class="lightboxable" />
-                ))}
+          {hasSnapshot && (
+            <section class="container case-snapshot-wrap" aria-label="Project snapshot">
+              <div class="case-snapshot reveal">
+                {d.snapshot && (
+                  <div class="snapshot-grid">
+                    <div>
+                      <h2>Problem</h2>
+                      <p>{d.snapshot.problem}</p>
+                    </div>
+                    <div>
+                      <h2>Approach</h2>
+                      <p>{d.snapshot.approach}</p>
+                    </div>
+                    <div>
+                      <h2>Outcome</h2>
+                      <p>{d.snapshot.outcome}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </section>
           )}
-          <section class="container" style="padding-bottom: var(--space-6);">
+
+          <section class="container case-body" style="padding-block: var(--space-5) var(--space-6);">
+            {toc.length > 2 && (
+              <nav class="case-toc" aria-label="On this page">
+                <p class="toc-title">On this page</p>
+                <ol>
+                  {toc.map((h) => (
+                    <li><a href={`#${h.slug}`}>{tocLabel(h.text)}</a></li>
+                  ))}
+                </ol>
+              </nav>
+            )}
             <div class="prose">
               <Content />
             </div>
@@ -82,7 +154,7 @@ const isGallery = d.type === 'gallery';
     }
 
     <!-- Next project -->
-    <a class="next-project" href={`${import.meta.env.BASE_URL}/portfolio/${nextSlug}`} data-theme={next.data.theme}>
+    <a class="next-project" href={`${import.meta.env.BASE_URL}/portfolio/${nextSlug}`} data-theme={nextTheme.attr} style={nextTheme.style}>
       <div class="container">
         <div>
           <span class="label">Next project</span>
@@ -100,16 +172,127 @@ const isGallery = d.type === 'gallery';
   </dialog>
 
   <script>
-    const dialog = document.querySelector<HTMLDialogElement>('dialog.lightbox');
-    const dImg = dialog?.querySelector('img');
-    document.querySelectorAll<HTMLImageElement>('.lightboxable').forEach((img) => {
-      img.addEventListener('click', () => {
-        if (!dialog || !dImg) return;
-        dImg.src = img.currentSrc || img.src;
-        dImg.alt = img.alt;
-        dialog.showModal();
+    function initCasePage() {
+      // --- Lightbox ---
+      const dialog = document.querySelector<HTMLDialogElement>('dialog.lightbox');
+      const dImg = dialog?.querySelector('img');
+      document.querySelectorAll<HTMLImageElement>('.lightboxable').forEach((img) => {
+        img.addEventListener('click', () => {
+          if (!dialog || !dImg) return;
+          dImg.src = img.currentSrc || img.src;
+          dImg.alt = img.alt;
+          dialog.showModal();
+        });
       });
-    });
-    dialog?.addEventListener('click', () => dialog.close());
+      dialog?.addEventListener('click', () => dialog.close());
+
+      // --- Gallery: stage + paged thumbnail track ---
+      const g = document.querySelector('.gallery');
+      if (g) {
+        const slides = Array.from(g.querySelectorAll('.gallery-slide'));
+        const thumbs = Array.from(g.querySelectorAll<HTMLButtonElement>('.gallery-thumb'));
+        const counter = g.querySelector('.gallery-count .cur');
+        const stage = g.querySelector<HTMLElement>('.gallery-stage');
+        const viewport = g.querySelector<HTMLElement>('.gallery-thumbs-viewport');
+        const track = g.querySelector<HTMLElement>('.gallery-thumbs-track');
+        const tPrev = g.querySelector<HTMLButtonElement>('.thumb-arrow.prev');
+        const tNext = g.querySelector<HTMLButtonElement>('.thumb-arrow.next');
+        let i = 0;
+        let startX = 0;
+        let swiped = false;
+        let tOffset = 0;
+        let tStartX = 0;
+        let tSwiped = false;
+
+        // Thumbnail track paging (no free scrolling: arrows + flick only)
+        const maxOff = () => (track && viewport ? Math.max(0, track.scrollWidth - viewport.clientWidth) : 0);
+        const setOff = (v: number) => {
+          const m = maxOff();
+          tOffset = Math.max(0, Math.min(v, m));
+          if (track) track.style.transform = `translateX(${-tOffset}px)`;
+          if (tPrev) tPrev.hidden = tOffset <= 2;
+          if (tNext) tNext.hidden = m === 0 || tOffset >= m - 2;
+        };
+        const pageWidth = () => (viewport ? viewport.clientWidth * 0.8 : 300);
+        const ensureVisible = (k: number) => {
+          const t = thumbs[k];
+          if (!t || !viewport) return;
+          const left = t.offsetLeft;
+          const right = left + t.offsetWidth;
+          if (left < tOffset + 8) setOff(left - 8);
+          else if (right > tOffset + viewport.clientWidth - 8) setOff(right - viewport.clientWidth + 8);
+        };
+
+        const go = (n: number) => {
+          i = (n + slides.length) % slides.length;
+          slides.forEach((s, k) => s.classList.toggle('is-current', k === i));
+          thumbs.forEach((t, k) => t.classList.toggle('is-current', k === i));
+          if (counter) counter.textContent = String(i + 1);
+          ensureVisible(i);
+        };
+
+        g.querySelector('.gallery-arrow.prev')?.addEventListener('click', () => go(i - 1));
+        g.querySelector('.gallery-arrow.next')?.addEventListener('click', () => go(i + 1));
+        thumbs.forEach((t, k) => t.addEventListener('click', () => { if (!tSwiped) go(k); }));
+        tPrev?.addEventListener('click', () => setOff(tOffset - pageWidth()));
+        tNext?.addEventListener('click', () => setOff(tOffset + pageWidth()));
+
+        stage?.addEventListener('keydown', (e) => {
+          if (e.key === 'ArrowLeft') { e.preventDefault(); go(i - 1); }
+          if (e.key === 'ArrowRight') { e.preventDefault(); go(i + 1); }
+        });
+
+        // Flick / swipe on the big picture
+        stage?.addEventListener('pointerdown', (e) => { startX = e.clientX; swiped = false; });
+        stage?.addEventListener('pointerup', (e) => {
+          const dx = e.clientX - startX;
+          if (Math.abs(dx) > 45) { swiped = true; go(i + (dx < 0 ? 1 : -1)); }
+        });
+        stage?.addEventListener('click', (e) => {
+          if (swiped) { e.stopPropagation(); e.preventDefault(); }
+        }, true);
+
+        // Flick on the thumbnail strip pages it
+        viewport?.addEventListener('pointerdown', (e) => { tStartX = e.clientX; tSwiped = false; });
+        viewport?.addEventListener('pointerup', (e) => {
+          const dx = e.clientX - tStartX;
+          if (Math.abs(dx) > 40) { tSwiped = true; setOff(tOffset + (dx < 0 ? 1 : -1) * pageWidth()); }
+        });
+
+        g.querySelectorAll('img').forEach((im) => ((im as HTMLImageElement).draggable = false));
+
+        const w = window as any;
+        if (w.__galleryResize) window.removeEventListener('resize', w.__galleryResize);
+        w.__galleryResize = () => setOff(tOffset);
+        window.addEventListener('resize', w.__galleryResize, { passive: true });
+        // Images may load after init; recompute once they have
+        setTimeout(() => setOff(0), 60);
+        window.addEventListener('load', () => setOff(tOffset), { once: true });
+      }
+
+      // --- "On this page" scrollspy (viewport-based) ---
+      const w2 = window as any;
+      if (w2.__caseSpy) { document.removeEventListener('scroll', w2.__caseSpy, true); w2.__caseSpy = null; }
+      const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('.case-toc a'));
+      if (links.length) {
+        const heads = Array.from(document.querySelectorAll<HTMLElement>('.prose h2[id]'));
+        const byId = new Map(links.map((a) => [(a.getAttribute('href') || '').slice(1), a]));
+        const onScroll = () => {
+          const line = window.innerHeight * 0.35;
+          let cur = heads[0];
+          for (const h of heads) {
+            if (h.getBoundingClientRect().top <= line) cur = h;
+            else break;
+          }
+          links.forEach((a) => a.classList.remove('is-active'));
+          if (cur) byId.get(cur.id)?.classList.add('is-active');
+        };
+        onScroll();
+        document.addEventListener('scroll', onScroll, { capture: true, passive: true });
+        w2.__caseSpy = onScroll;
+      }
+    }
+
+    document.addEventListener('astro:page-load', initCasePage);
   </script>
 </BaseLayout>

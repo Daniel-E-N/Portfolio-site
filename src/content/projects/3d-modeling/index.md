@@ -4,7 +4,7 @@ summary: "A personal gallery of 3D models made in my spare time — product conc
 year: 2024
 role: "Personal work"
 tags: ["Fusion 360", "Hard-surface modeling", "Rendering"]
-theme: "dark"
+theme: "sand"
 order: 5
 type: "gallery"
 cover: "./assets/gallery-01.webp"
@@ -47,5 +47,4 @@ gallery:
   - src: "./assets/gallery-18.webp"
     alt: "3D render — material study"
 ---
-
 I like to make 3D models in my spare time — it's how I think through form, proportion, and detail. Everything here was modelled and rendered as personal practice, mostly in Fusion 360. Click any image to view it full size.

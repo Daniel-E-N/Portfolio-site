@@ -1,0 +1,300 @@
+/* ============================================================
+   Case study system — snapshot, gallery, TOC rail, prose blocks
+   Loaded after cards.css from global.css
+   ============================================================ */
+
+/* ---------- Snapshot (Problem / Approach / Outcome + stats) ---------- */
+.case-snapshot-wrap { padding-top: clamp(5rem, 12vw, 9rem); }
+
+.case-snapshot {
+  background: var(--theme-tint);
+  border-radius: var(--radius-l);
+  padding: clamp(1.75rem, 4vw, 3rem);
+}
+.snapshot-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(1.5rem, 3vw, 2.5rem);
+}
+.snapshot-grid h2 {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--theme-strong);
+  margin-bottom: 0.55rem;
+}
+.snapshot-grid p {
+  margin: 0;
+  font-size: var(--step-0);
+  line-height: 1.55;
+  color: var(--ink);
+}
+
+.case-stats {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  margin: clamp(1.5rem, 3vw, 2.25rem) 0 0;
+  padding: clamp(1.25rem, 2.5vw, 1.75rem) 0 0;
+  border-top: 1px solid color-mix(in srgb, var(--theme-strong) 25%, transparent);
+}
+.case-stats li { min-width: 8rem; }
+.case-stats .value {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--step-3);
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  color: var(--theme-strong);
+}
+.case-stats .label {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: var(--step--1);
+  color: var(--ink-2);
+  max-width: 22ch;
+}
+@media (max-width: 880px) {
+  .snapshot-grid { grid-template-columns: 1fr; }
+}
+
+/* ---------- Gallery: big stage + thumbnail grid ---------- */
+.gallery { display: grid; gap: 0.9rem; }
+.gallery-stage {
+  position: relative;
+  aspect-ratio: 16 / 9.5;
+  border-radius: var(--radius-l);
+  overflow: hidden;
+  background: var(--paper-2);
+  touch-action: pan-y; /* vertical page scroll stays native; horizontal flick is ours */
+}
+.gallery-stage:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+.gallery-slide {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.35s var(--ease-out);
+  pointer-events: none;
+  cursor: zoom-in;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.gallery-slide.is-current { opacity: 1; pointer-events: auto; }
+
+.gallery-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.9rem;
+  height: 2.9rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--paper) 82%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: var(--ink);
+  font-size: 1.15rem;
+  line-height: 1;
+  z-index: 2;
+  transition: background-color 0.2s, transform 0.2s var(--ease-out);
+}
+.gallery-arrow:hover { background: var(--paper); transform: translateY(-50%) scale(1.07); }
+.gallery-arrow:active { transform: translateY(-50%) scale(0.96); }
+.gallery-arrow.prev { left: 0.9rem; }
+.gallery-arrow.next { right: 0.9rem; }
+
+.gallery-count {
+  position: absolute;
+  bottom: 0.85rem;
+  right: 1rem;
+  z-index: 2;
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--step--1);
+  background: color-mix(in srgb, var(--paper) 82%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: var(--ink);
+  padding: 0.22rem 0.75rem;
+  border-radius: 999px;
+}
+
+.gallery-thumbs { position: relative; min-width: 0; max-width: 100%; }
+.gallery-thumbs-viewport { overflow: hidden; }
+.gallery-thumbs-track {
+  display: flex;
+  gap: 0.75rem;
+  transition: transform 0.35s var(--ease-out);
+  touch-action: pan-y;
+  will-change: transform;
+}
+.gallery-thumb {
+  flex: 0 0 clamp(4.4rem, 15vw, 8.75rem);
+  padding: 0;
+  border-radius: var(--radius-s);
+  overflow: hidden;
+  opacity: 0.55;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  cursor: pointer;
+  transition: opacity 0.2s, outline-color 0.2s;
+}
+.gallery-thumb img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+.gallery-thumb:hover { opacity: 0.85; }
+.gallery-thumb.is-current { opacity: 1; outline-color: var(--theme); }
+
+@media (max-width: 640px) {
+  .gallery-stage { aspect-ratio: 4 / 3; border-radius: var(--radius-m); }
+  .gallery-thumbs-track { gap: 0.5rem; }
+  .gallery-arrow { width: 2.6rem; height: 2.6rem; }
+}
+
+/* ---------- "On this page" rail ---------- */
+.case-body { position: relative; }
+.case-toc { display: none; font-size: var(--step--1); }
+.case-toc .toc-title {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--ink-2);
+  margin-bottom: 0.6rem;
+  padding-left: 0.6rem;
+}
+.case-toc ol { list-style: none; margin: 0; padding: 0; counter-reset: toc; display: grid; gap: 2px; }
+.case-toc li { counter-increment: toc; }
+.case-toc a {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.42rem 0.6rem;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--ink-2);
+  transition: background-color 0.2s, color 0.2s;
+}
+.case-toc a::before {
+  content: counter(toc, decimal-leading-zero);
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  color: var(--theme-strong);
+  flex-shrink: 0;
+}
+.case-toc a:hover { background: var(--paper-2); color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.case-toc a.is-active { background: var(--theme-tint); color: var(--ink); font-weight: 600; }
+
+@media (min-width: 1180px) {
+  .case-body {
+    display: grid;
+    grid-template-columns: 1fr min(var(--prose), 100%) 1fr;
+    column-gap: clamp(1.5rem, 3vw, 3rem);
+    align-items: start;
+  }
+  .case-body .prose { grid-column: 2; width: 100%; }
+  .case-toc {
+    display: block;
+    grid-column: 1;
+    grid-row: 1;
+    position: sticky;
+    top: 5.5rem;
+    justify-self: start;
+    width: 100%;
+    max-width: 14rem;
+  }
+}
+
+/* ---------- Prose block conventions (plain markdown, no plugins) ----------
+   1. Two images on consecutive lines in ONE paragraph  →  side-by-side pair
+   2. An italic-only line directly after an image       →  caption
+------------------------------------------------------------------------- */
+
+/* Image pair */
+.prose p:has(> img + img) {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  width: min(100%, calc(100vw - 3rem));
+  max-width: calc(var(--prose) + 16rem);
+  margin: var(--space-4) auto;
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+.prose p:has(> img + img) > img {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  object-fit: cover;
+  margin: 0;
+  margin-left: 0;
+  transform: none;
+}
+@media (max-width: 640px) {
+  .prose p:has(> img + img) { grid-template-columns: 1fr; }
+}
+
+/* Caption line */
+.prose p:has(> img) + p:has(> em:only-child) {
+  margin-top: calc(-1 * var(--space-4) + 0.8rem);
+  margin-bottom: var(--space-4);
+  text-align: center;
+  font-size: var(--step--1);
+  color: var(--ink-2);
+}
+
+/* ---------- Gallery as the hero cover ---------- */
+.case-cover .gallery-stage { box-shadow: var(--shadow-lift); }
+.case-cover .gallery-thumbs { padding-top: 0.1rem; }
+
+/* Smooth anchor landing below the sticky header */
+.prose h2 { scroll-margin-top: 6.5rem; }
+
+/* The TOC rail rides the header's hide/show */
+@media (min-width: 1180px) {
+  .case-toc { transition: top 0.26s cubic-bezier(0.33, 1, 0.68, 1); }
+  :root.header-hidden .case-toc { top: 1.5rem; }
+}
+
+
+/* Thumbnail strip pager */
+.thumb-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  width: 2.3rem;
+  height: 2.3rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--paper) 90%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: var(--shadow-card);
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1;
+  transition: background-color 0.2s, transform 0.2s var(--ease-out);
+}
+.thumb-arrow:hover { background: var(--paper); transform: translateY(-50%) scale(1.08); }
+.thumb-arrow.prev { left: -0.5rem; }
+.thumb-arrow.next { right: -0.5rem; }
+.thumb-arrow[hidden] { display: none; }
+
+/* Center the lightbox (the global margin reset removed the UA's auto-centering) */
+dialog.lightbox {
+  margin: auto;
+  width: fit-content;
+  height: fit-content;
+}

@@ -1,0 +1,430 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+/**
+ * Interactive CV — data is hardcoded here by design (single source of truth
+ * is master_cv_en.md; update both when things change).
+ *
+ * cats: 'ux' | 'ai' | 'teach' — used by the Focus bar (dims, never hides).
+ * Chip `roles` reference role/education ids — selecting skills (multi-select)
+ * highlights the connected entries below.
+ */
+
+type Cat = 'ux' | 'ai' | 'teach';
+
+const roles: {
+  id: string;
+  title: string;
+  org: string;
+  dates: string;
+  cats: Cat[];
+  summary: string;
+  bullets: string[];
+  details?: string[];
+}[] = [
+  {
+    id: 'five',
+    title: 'UX Design Consultant',
+    org: 'FIVE · Odense',
+    dates: 'Dec 2025 – Jan 2026',
+    cats: ['ux'],
+    summary:
+      'Advised small and medium-sized companies on digital products, user experience, and customer satisfaction — from journey mapping to concrete, implementable improvement proposals.',
+    bullets: [
+      'Redesigned a health app’s onboarding flow, cutting the process from 18 steps to 3.',
+      'Mapped customer journeys, built a service blueprint, and restructured the website for Odense Sportscentrum so users could find information and complete tasks faster.',
+      'Prepared design principles and UI/UX guidelines for consistent implementation of design changes.',
+    ],
+    details: [
+      'Mapped digital user journeys and identified friction in central touchpoints.',
+      'Ran surveys to ground improvement proposals in user data.',
+      'Built prototypes with low-code tools and translated user insights into concrete proposals.',
+    ],
+  },
+  {
+    id: 'sdu-ai',
+    title: 'Project Assistant — AI, Design & Employability',
+    org: 'University of Southern Denmark · Kolding',
+    dates: 'Nov 2024 – Jun 2025',
+    cats: ['ai', 'teach'],
+    summary:
+      'Research role on how AI and generative AI reshape workflows, competency needs, and educational strategy.',
+    bullets: [
+      'Mapped the use of AI and generative AI across companies, public organisations, and industries.',
+      'Interviewed professionals in healthcare, robotics, technology, telecom, and public services; analysed the data for AI-related competency needs.',
+      'Translated research into workshops, presentations, recommendations, and strategic directions for MSc programmes.',
+    ],
+    details: [
+      'Planned and facilitated workshops for educators, leaders, faculty staff, and collaborators.',
+      'Contributed to strategic initiatives on practice-oriented AI competencies.',
+      'Communicated findings to researchers, educators, and interdisciplinary collaborators.',
+    ],
+  },
+  {
+    id: 'tangible-instructor',
+    title: 'Instructor — Tangible AI',
+    org: 'University of Southern Denmark · Kolding',
+    dates: 'Aug 2024 – Jan 2025',
+    cats: ['teach', 'ai'],
+    summary:
+      'Teaching, workshop design, and project supervision — communicating AI as a design material.',
+    bullets: [
+      'Developed lesson plans, slides, teaching material, and hands-on activities that made complex AI concepts applicable.',
+      'Supervised student AI design projects from idea and research to prototype, testing, and presentation — with company cases from Aduro, LINAK, and Ztove.',
+      'Guided projects with attention to value, complexity, cost, risk, and ethics; managed dialogue between students and industry partners.',
+    ],
+    details: [
+      'Methods and themes: Tangible AI, data tinkering, AI design sprints, explainable AI, human-in-the-loop, graspable AI.',
+      'Prototyping with Micro:bit and low-code tools.',
+    ],
+  },
+  {
+    id: 'tangible-research',
+    title: 'Research Assistant — Tangible AI Design',
+    org: 'University of Southern Denmark · Kolding',
+    dates: 'Mar 2024 – Sep 2024',
+    cats: ['ai'],
+    summary:
+      'Mapping how AI can be integrated into physical products, interactive systems, and design education.',
+    bullets: [
+      'Conducted literature reviews on AI in physical products, interactive systems, and design processes.',
+      'Translated complex research insights into design strategies, workshops, teaching material, and reporting.',
+      'Contributed to articles, reports, and academic-industrial collaboration projects.',
+    ],
+  },
+  {
+    id: 'ambassador',
+    title: 'Student Ambassador',
+    org: 'University of Southern Denmark · Kolding',
+    dates: 'Jan 2024 – Apr 2025',
+    cats: ['teach'],
+    summary:
+      'First point of contact for prospective students — clear, helpful communication by email and online meetings.',
+    bullets: [
+      'Guided prospective students through programmes, admission, exams, housing, and the transition into student life.',
+      'Communicated complex or unclear information to people with very different needs.',
+    ],
+  },
+  {
+    id: 'pedagogy',
+    title: 'Pedagogical Assistant & Youth Club Assistant',
+    org: 'Odense Municipality · Regnbuen/Vestermarken · Faaborg Juniorklub',
+    dates: '2014 – 2018',
+    cats: ['teach'],
+    summary:
+      'Relationship work with children and young people — the foundation of my communication and facilitation skills.',
+    bullets: [
+      'Built trust and clear communication channels with children, parents, and colleagues.',
+      'Worked calmly and adaptively in busy environments, handling conflicts fairly.',
+    ],
+  },
+];
+
+const education = [
+  {
+    id: 'edu-msc',
+    title: 'MSc in IT — Product Design',
+    org: 'University of Southern Denmark',
+    dates: '2023 – 2025',
+    note: 'Grade average: 12 · Completed in English',
+    body: 'Practice-oriented, interdisciplinary programme on designing technologies, products, and services from user needs, context, and the interplay of people, organisations, and practice. Thesis in collaboration with Ztove on smart kitchen technology.',
+  },
+  {
+    id: 'edu-ba',
+    title: 'BA in Information Studies, IT & Interaction Design',
+    org: 'University of Southern Denmark',
+    dates: '2019 – 2023',
+    note: 'Grade average: 9.8',
+    body: 'UX, usability, interaction design, user research, prototyping, and web technology — designing digital solutions from user needs and behaviour.',
+  },
+];
+
+/* Skill → experience/education connections. Educations count as connections
+   so the highlight tells the full story of where a skill comes from. */
+const skillGroups: {
+  name: string;
+  cats: Cat[];
+  chips: { label: string; roles?: string[] }[];
+}[] = [
+  {
+    name: 'UX & Service Design',
+    cats: ['ux'],
+    chips: [
+      { label: 'User research', roles: ['five', 'sdu-ai', 'edu-msc', 'edu-ba'] },
+      { label: 'Qualitative interviews', roles: ['five', 'sdu-ai', 'edu-msc'] },
+      { label: 'Usability testing', roles: ['five', 'edu-ba'] },
+      { label: 'Customer & user journeys', roles: ['five', 'edu-ba'] },
+      { label: 'Service blueprints', roles: ['five'] },
+      { label: 'Information architecture', roles: ['five', 'edu-ba'] },
+      { label: 'UI/UX guidelines', roles: ['five'] },
+      { label: 'Interaction design', roles: ['five', 'tangible-instructor', 'edu-ba'] },
+      { label: 'Prototyping', roles: ['five', 'tangible-instructor', 'edu-msc', 'edu-ba'] },
+      { label: 'Co-design & participatory design', roles: ['tangible-instructor', 'edu-msc'] },
+    ],
+  },
+  {
+    name: 'AI & Research',
+    cats: ['ai'],
+    chips: [
+      { label: 'AI & generative AI in practice', roles: ['sdu-ai', 'tangible-instructor', 'tangible-research'] },
+      { label: 'Explainable AI & human-in-the-loop', roles: ['tangible-instructor', 'tangible-research'] },
+      { label: 'Technology assessment', roles: ['sdu-ai', 'tangible-research', 'edu-msc'] },
+      { label: 'Workflow & friction mapping', roles: ['five', 'sdu-ai'] },
+      { label: 'Qualitative analysis', roles: ['sdu-ai', 'edu-msc'] },
+      { label: 'Literature reviews', roles: ['tangible-research', 'edu-msc'] },
+      { label: 'Strategic recommendations', roles: ['five', 'sdu-ai'] },
+    ],
+  },
+  {
+    name: 'Facilitation & Teaching',
+    cats: ['teach'],
+    chips: [
+      { label: 'Workshop design & facilitation', roles: ['sdu-ai', 'tangible-instructor'] },
+      { label: 'Instructional design', roles: ['tangible-instructor'] },
+      { label: 'Project supervision', roles: ['tangible-instructor'] },
+      { label: 'Stakeholder involvement', roles: ['sdu-ai', 'tangible-instructor', 'edu-msc'] },
+      { label: 'Clear communication', roles: ['ambassador', 'pedagogy', 'sdu-ai'] },
+    ],
+  },
+  {
+    name: 'Tools',
+    cats: [],
+    chips: [
+      { label: 'Figma', roles: ['five', 'edu-msc', 'edu-ba'] },
+      { label: 'Adobe Illustrator & Photoshop', roles: ['edu-ba'] },
+      { label: '3D CAD & 3D printing', roles: ['edu-msc'] },
+      { label: 'HTML & CSS', roles: ['edu-ba'] },
+      { label: 'Low-code prototyping', roles: ['five', 'tangible-instructor'] },
+      { label: 'WordPress' },
+    ],
+  },
+];
+
+const projects = [
+  { title: 'Smart Temperature Probe', slug: 'smart-temperature-probe' },
+  { title: 'Smart Cooktop', slug: 'smart-cooktop' },
+  { title: 'Hospital Bed Remote', slug: 'hospital-bed-remote' },
+  { title: 'Focus Lamp', slug: 'focus-lamp' },
+];
+
+const filters: { id: string; label: string }[] = [
+  { id: 'all', label: 'Everything' },
+  { id: 'ux', label: 'UX & Service Design' },
+  { id: 'ai', label: 'AI & Research' },
+  { id: 'teach', label: 'Teaching & Facilitation' },
+];
+---
+
+<BaseLayout
+  title="CV — Daniel Epler Nuñez"
+  description="Curriculum vitae of Daniel Epler Nuñez — MSc in IT Product Design. UX, service design, AI, research, and facilitation."
+  current="cv"
+>
+  <div class="cv-page" data-filter="all">
+    <!-- Hero -->
+    <section class="page-hero container">
+      <h1>Curriculum Vitae</h1>
+      <p class="lede">
+        MSc in IT Product Design working at the intersection of people, technology,
+        and practice — moving from unclear needs to concrete, testable solutions.
+      </p>
+      <ul class="cv-facts" aria-label="Quick facts">
+        <li>Odense, Denmark</li>
+        <li>MSc IT Product Design · grade average 12</li>
+        <li>Danish · English · Spanish (professional)</li>
+      </ul>
+      <div class="cv-actions">
+        <button class="btn btn--solid" id="cv-print">Download as PDF <span class="arrow">↓</span></button>
+        <a class="btn" href="mailto:danielepler93@gmail.com?subject=From%20your%20CV%20page">Email me <span class="arrow">→</span></a>
+      </div>
+    </section>
+
+    <!-- Focus bar (sticky) -->
+    <div class="cv-filter-wrap">
+      <div class="container">
+        <div class="cv-filter" role="group" aria-label="Highlight CV by focus area">
+          <span class="cv-filter-label">Focus</span>
+          {filters.map((f) => (
+            <button class="cv-filter-btn" data-filter-id={f.id} aria-pressed={f.id === 'all' ? 'true' : 'false'}>
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="cv-wrap">
+        <!-- Skills: dropdown groups + multi-select highlighting -->
+        <section class="cv-skillmenu" aria-label="Skills and competencies">
+          <div class="cv-skillmenu-head">
+            <h2 class="cv-h2">Skills</h2>
+            <p class="cv-status" role="status" aria-live="polite">
+              <span id="cv-status-text">Select skills to highlight where I used them — combine as many as you like.</span>
+              <button id="cv-clear" class="cv-clear" hidden>Clear ×</button>
+            </p>
+          </div>
+          {skillGroups.map((g) => (
+            <details class="cv-skill-group" data-cats={g.cats.join(' ')}>
+              <summary>
+                <span class="group-name">{g.name}</span>
+                <span class="group-meta">{g.chips.length} skills</span>
+              </summary>
+              <div class="cv-skills">
+                {g.chips.map((c) =>
+                  c.roles ? (
+                    <button class="cv-chip" data-roles={c.roles.join(' ')} aria-pressed="false">
+                      {c.label}
+                      <span class="chip-count" aria-label={`${c.roles.length} connections`}>{c.roles.length}</span>
+                    </button>
+                  ) : (
+                    <span class="cv-chip cv-chip--static">{c.label}</span>
+                  )
+                )}
+              </div>
+            </details>
+          ))}
+        </section>
+
+        <!-- Experience -->
+        <h2 class="cv-h2">Experience</h2>
+        <div class="cv-timeline">
+          {roles.map((r) => (
+            <article class="cv-role" id={`role-${r.id}`} data-cats={r.cats.join(' ')}>
+              <header class="cv-role-head">
+                <h3>{r.title}</h3>
+                <p class="cv-org">{r.org}</p>
+                <p class="cv-dates">{r.dates}</p>
+              </header>
+              <p class="cv-summary">{r.summary}</p>
+              <ul class="cv-bullets">
+                {r.bullets.map((b) => <li>{b}</li>)}
+              </ul>
+              {r.details && (
+                <details class="cv-more">
+                  <summary>More detail</summary>
+                  <ul class="cv-bullets">
+                    {r.details.map((b) => <li>{b}</li>)}
+                  </ul>
+                </details>
+              )}
+            </article>
+          ))}
+        </div>
+
+        <!-- Education -->
+        <h2 class="cv-h2">Education</h2>
+        <div class="cv-timeline">
+          {education.map((e) => (
+            <article class="cv-role cv-edu" id={`role-${e.id}`}>
+              <header class="cv-role-head">
+                <h3>{e.title}</h3>
+                <p class="cv-org">{e.org}</p>
+                <p class="cv-dates">{e.dates}</p>
+              </header>
+              <p class="cv-note">{e.note}</p>
+              <p class="cv-summary">{e.body}</p>
+            </article>
+          ))}
+        </div>
+
+        <!-- Selected work -->
+        <h2 class="cv-h2">Selected work</h2>
+        <ul class="cv-projects">
+          {projects.map((p) => (
+            <li>
+              <a href={`${import.meta.env.BASE_URL}/portfolio/${p.slug}`}>{p.title} <span class="arrow" aria-hidden="true">→</span></a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('astro:page-load', () => {
+      const page = document.querySelector<HTMLElement>('.cv-page');
+      if (!page) return;
+
+      // --- Print / PDF (property assignment: safe across page swaps) ---
+      document.getElementById('cv-print')?.addEventListener('click', () => window.print());
+      window.onbeforeprint = () => {
+        page.querySelectorAll<HTMLDetailsElement>('details').forEach((d) => {
+          if (!d.open) { d.dataset.autoOpened = 'true'; d.open = true; }
+        });
+      };
+      window.onafterprint = () => {
+        page.querySelectorAll<HTMLDetailsElement>('details[data-auto-opened]').forEach((d) => {
+          d.open = false;
+          delete d.dataset.autoOpened;
+        });
+      };
+
+      // --- Focus filter (dims, never hides) ---
+      const filterBtns = page.querySelectorAll<HTMLButtonElement>('.cv-filter-btn');
+      filterBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          page.dataset.filter = btn.dataset.filterId || 'all';
+          filterBtns.forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+        });
+      });
+
+      // --- Skills: multi-select → highlight connected entries, no scrolling ---
+      const chips = Array.from(page.querySelectorAll<HTMLButtonElement>('.cv-chip[data-roles]'));
+      const statusText = document.getElementById('cv-status-text');
+      const clearBtn = document.getElementById('cv-clear') as HTMLButtonElement | null;
+      const defaultStatus = statusText?.textContent || '';
+      const selected = new Set<HTMLButtonElement>();
+
+      const update = () => {
+        page.querySelectorAll('.cv-role.is-hit').forEach((el) => el.classList.remove('is-hit'));
+        if (selected.size === 0) {
+          page.classList.remove('is-xhl');
+          if (statusText) statusText.textContent = defaultStatus;
+          if (clearBtn) clearBtn.hidden = true;
+          return;
+        }
+        const ids = new Set<string>();
+        selected.forEach((chip) =>
+          (chip.dataset.roles || '').split(' ').forEach((id) => id && ids.add(id))
+        );
+        let hits = 0;
+        ids.forEach((id) => {
+          const el = document.getElementById(`role-${id}`);
+          if (el) { el.classList.add('is-hit'); hits++; }
+        });
+        page.classList.add('is-xhl');
+        if (statusText) {
+          const s = selected.size;
+          statusText.textContent = `${s} skill${s > 1 ? 's' : ''} selected → ${hits} ${hits === 1 ? 'entry' : 'entries'} highlighted below`;
+        }
+        if (clearBtn) clearBtn.hidden = false;
+      };
+
+      const clearAll = () => {
+        selected.forEach((c) => { c.classList.remove('is-active'); c.setAttribute('aria-pressed', 'false'); });
+        selected.clear();
+        update();
+      };
+
+      chips.forEach((chip) => {
+        chip.addEventListener('click', () => {
+          if (selected.has(chip)) {
+            selected.delete(chip);
+            chip.classList.remove('is-active');
+            chip.setAttribute('aria-pressed', 'false');
+          } else {
+            selected.add(chip);
+            chip.classList.add('is-active');
+            chip.setAttribute('aria-pressed', 'true');
+          }
+          update();
+        });
+      });
+      clearBtn?.addEventListener('click', clearAll);
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && selected.size) clearAll();
+      });
+    });
+  </script>
+</BaseLayout>
