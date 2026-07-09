@@ -6,7 +6,7 @@ collaborator: "Ztove"
 role: "Interaction design, Figma prototyping, 3D CAD"
 tags: ["UX research", "UI design", "Figma prototype", "3D CAD"]
 theme: "teal"
-order: 3
+order: 2
 type: "case"
 cover: "./assets/cover.png"
 coverAlt: "Render of the redesigned cooktop with an integrated touchscreen"
