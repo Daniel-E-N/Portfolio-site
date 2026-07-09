@@ -5,7 +5,7 @@ year: 2024
 collaborator: "LINAK"
 role: "UX research, prototyping, 3D CAD & print"
 tags: ["Accessibility", "UX research", "Physical prototyping", "3D CAD"]
-theme: "blue"
+theme: "#b380ae"
 order: 1
 type: "case"
 cover: "./assets/cover.webp"
