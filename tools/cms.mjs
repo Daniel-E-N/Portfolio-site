@@ -275,6 +275,12 @@ function listProjects() {
     .sort((a, b) => a.order - b.order);
 }
 
+/* ---------------- interactive CV data ---------------- */
+const CV_FILE = path.join(ROOT, 'src', 'data', 'cv.json');
+const CV_PDF = path.join(PUBLIC_DIR, 'cv.pdf');
+function readCv() { return JSON.parse(fs.readFileSync(CV_FILE, 'utf8')); }
+function writeCv(cv) { fs.writeFileSync(CV_FILE, JSON.stringify(cv, null, 2) + '\n'); }
+
 /* ---------------- accents palette (CMS-only reuse library) ---------------- */
 const ACCENTS_FILE = path.join(HERE, 'accents.json');
 const HEX_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
@@ -333,6 +339,48 @@ const server = http.createServer(async (req, res) => {
           .map((a) => ({ name: String(a.name).slice(0, 40), color: a.color }));
         fs.writeFileSync(ACCENTS_FILE, JSON.stringify(clean, null, 2));
         return json(res, 200, { ok: true, accents: clean });
+      }
+    }
+
+    /* interactive CV content */
+    if (u.pathname === '/api/cv') {
+      if (req.method === 'GET') {
+        try { return json(res, 200, { cv: readCv() }); }
+        catch (e) { return json(res, 500, { error: 'cannot read src/data/cv.json: ' + e.message }); }
+      }
+      if (req.method === 'PUT') {
+        const { cv } = JSON.parse(await readBody(req));
+        if (!cv || typeof cv !== 'object' || !cv.profile) return json(res, 400, { error: 'invalid CV payload' });
+        writeCv(cv);
+        return json(res, 200, { ok: true });
+      }
+    }
+
+    /* CV PDF: upload / replace / remove / preview */
+    if (u.pathname === '/api/cv/pdf') {
+      if (req.method === 'GET') {
+        if (!fs.existsSync(CV_PDF)) { res.writeHead(404); return res.end(); }
+        res.writeHead(200, { 'Content-Type': 'application/pdf' });
+        return res.end(fs.readFileSync(CV_PDF));
+      }
+      if (req.method === 'POST') {
+        const { name, dataBase64 } = JSON.parse(await readBody(req));
+        if (!name || !/\.pdf$/i.test(name)) return json(res, 400, { error: 'Only .pdf files are accepted.' });
+        const buf = Buffer.from(dataBase64 || '', 'base64');
+        if (buf.slice(0, 5).toString('latin1') !== '%PDF-') return json(res, 400, { error: 'That file is not a valid PDF.' });
+        fs.mkdirSync(PUBLIC_DIR, { recursive: true });
+        fs.writeFileSync(CV_PDF, buf);
+        const cv = readCv();
+        cv.pdf = { file: 'cv.pdf', name: path.basename(name), size: buf.length, uploadedAt: new Date().toISOString() };
+        writeCv(cv);
+        return json(res, 200, { ok: true, pdf: cv.pdf });
+      }
+      if (req.method === 'DELETE') {
+        if (fs.existsSync(CV_PDF)) { fs.mkdirSync(TRASH, { recursive: true }); moveSafe(CV_PDF, path.join(TRASH, `cv-${Date.now()}.pdf`)); }
+        const cv = readCv();
+        cv.pdf = null;
+        writeCv(cv);
+        return json(res, 200, { ok: true });
       }
     }
 

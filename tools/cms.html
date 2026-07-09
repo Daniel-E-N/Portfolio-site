@@ -96,6 +96,29 @@
   .accent-row input[type=color] { width:2.4rem; height:2.4rem; padding:0; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer; }
   .dot.custom { border:1px solid rgba(0,0,0,.15); }
 
+  /* ---- top nav + CV manager ---- */
+  .topnav { display:flex; gap:.2rem; margin-top:1rem; border-bottom:1px solid var(--line); }
+  .topnav-btn { border:0; background:none; border-bottom:2px solid transparent; border-radius:0; color:var(--ink2); font-weight:600; padding:.55rem 1rem; font-size:.92rem; }
+  .topnav-btn:hover { background:none; color:var(--ink); }
+  .topnav-btn.on { color:var(--ink); border-bottom-color:var(--ink); }
+  .cv-subtabs { display:flex; flex-wrap:wrap; gap:.35rem; margin:1.2rem 0 .4rem; position:sticky; top:3.4rem; z-index:4; }
+  .cv-subtab { border:1px solid var(--line); background:#fffdf7; color:var(--ink2); border-radius:999px; padding:.35rem .85rem; font-size:.8rem; font-weight:600; cursor:pointer; font-family:"Outfit",sans-serif; }
+  .cv-subtab:hover { background:var(--ink); color:var(--paper); }
+  .cv-subtab.on { background:var(--ink); color:var(--paper); border-color:var(--ink); }
+  .cv-item { border:1px solid var(--line); border-radius:12px; padding:1rem; margin-bottom:.9rem; background:#fff; }
+  .cv-item.hidden-item { opacity:.55; }
+  .cv-item-head { display:flex; gap:.5rem; align-items:center; margin-bottom:.6rem; }
+  .cv-item-head .t { font-weight:600; font-family:"Outfit",sans-serif; margin-right:auto; }
+  .cv-item .meta { margin-bottom:.4rem; }
+  .toggle { display:inline-flex; align-items:center; gap:.35rem; font-size:.74rem; color:var(--ink2); cursor:pointer; text-transform:none; letter-spacing:0; font-weight:500; margin:0; }
+  .toggle input { width:auto; }
+  .ms { display:flex; flex-wrap:wrap; gap:.35rem; padding:.35rem; border:1px solid var(--line); border-radius:8px; background:#fff; position:relative; align-items:center; }
+  .ms:focus-within { outline:2px solid var(--teal); border-color:var(--teal); }
+  .ms input { border:0; outline:0; flex:1; min-width:7rem; padding:.25rem; background:none; }
+  .ms-drop { position:absolute; top:100%; left:0; right:0; z-index:30; background:#fff; border:1px solid var(--line); border-radius:8px; margin-top:2px; max-height:13rem; overflow:auto; box-shadow:0 8px 24px rgba(0,0,0,.14); }
+  .ms-opt { padding:.4rem .6rem; cursor:pointer; font-size:.85rem; }
+  .ms-opt:hover { background:var(--teal-tint); }
+
   /* ---- cover / gallery ---- */
   .coverbox { display:flex; gap:1rem; align-items:flex-start; flex-wrap:wrap; }
   .coverbox img { width:14rem; max-width:100%; aspect-ratio:16/10; object-fit:cover; border-radius:10px; border:1px solid var(--line); }
@@ -156,7 +179,12 @@
 <body>
 <div class="wrap">
   <h1>Portfolio CMS <span class="tag">local only</span></h1>
-  <p class="muted">Manages <code>src/content/projects/</code>. Keep <code>npm run dev</code> running to preview changes instantly. Deploy as usual when happy.</p>
+  <p class="muted">Keep <code>npm run dev</code> running to preview changes instantly. Deploy as usual when happy.</p>
+
+  <nav class="topnav">
+    <button class="topnav-btn on" data-view="projects">Projects</button>
+    <button class="topnav-btn" data-view="cv">Interactive CV</button>
+  </nav>
 
   <!-- ============ HOME VIEW ============ -->
   <div id="home">
@@ -280,6 +308,18 @@
         <textarea id="edRaw" class="body" style="min-height:26rem"></textarea>
       </section>
     </div>
+  </div>
+
+  <!-- ============ INTERACTIVE CV VIEW ============ -->
+  <div id="cvView" style="display:none">
+    <div class="editbar">
+      <h2>Interactive CV</h2>
+      <span id="cvSaveStatus" class="muted" style="margin-right:auto"></span>
+      <button id="cvReload" class="small ghost">Reload</button>
+      <button id="cvSave" class="primary">Save CV</button>
+    </div>
+    <div class="cv-subtabs" id="cvSubtabs"></div>
+    <div id="cvPanel"></div>
   </div>
 </div>
 
@@ -1285,8 +1325,408 @@ $('#create').addEventListener('click', async () => {
   } else { msg.className = 'msg err'; msg.textContent = out.error || 'failed'; }
 });
 
+/* ================= Interactive CV manager ================= */
+let CV = null;            // cv.json in memory
+let CVPROJECTS = [];      // portfolio projects [{slug,title}]
+let cvTab = 'profile';
+
+const el = (tag, cls) => { const e = document.createElement(tag); if (cls) e.className = cls; return e; };
+const h2 = (t) => { const h = el('h2'); h.textContent = t; return h; };
+const hintP = (t) => { const p = el('p', 'hint'); p.textContent = t; return p; };
+const emptyBox = (t, s) => { const d = el('div', 'empty'); d.innerHTML = '<strong>' + esc(t) + '</strong>' + esc(s); return d; };
+const uid = (p) => p + '-' + Math.random().toString(36).slice(2, 8);
+const reindex = (list) => list.forEach((x, i) => { if ('order' in x) x.order = i + 1; });
+
+function cvMarkDirty() { const s = $('#cvSaveStatus'); if (s) { s.textContent = 'Unsaved changes'; s.style.color = '#a33'; } }
+
+function setView(view) {
+  const proj = view === 'projects';
+  $('#home').style.display = proj ? 'block' : 'none';
+  $('#editorView').style.display = 'none';
+  $('#cvView').style.display = proj ? 'none' : 'block';
+  document.querySelectorAll('.topnav-btn').forEach((b) => b.classList.toggle('on', b.dataset.view === view));
+  if (proj) { ED = null; refresh(); }
+  else if (!CV) loadCv();
+}
+async function loadCv() {
+  const panel = $('#cvPanel'); panel.innerHTML = '<p class="hint">Loading…</p>';
+  try {
+    const r = await (await fetch('/api/cv')).json();
+    if (r.error) { panel.innerHTML = '<div class="msg err" style="display:block">' + esc(r.error) + '</div>'; return; }
+    CV = r.cv;
+    $('#cvSaveStatus').textContent = '';
+    if (!CVPROJECTS.length) { try { CVPROJECTS = (await (await fetch('/api/projects')).json()).projects.map((p) => ({ slug: p.slug, title: p.title })); } catch {} }
+    renderCvSubtabs(); renderCvPanel();
+  } catch { panel.innerHTML = '<div class="msg err" style="display:block">Could not load CV data.</div>'; }
+}
+async function saveCv() {
+  const btn = $('#cvSave'), s = $('#cvSaveStatus'); btn.disabled = true; s.textContent = 'Saving…'; s.style.color = '';
+  try {
+    const r = await (await fetch('/api/cv', { method: 'PUT', body: JSON.stringify({ cv: CV }) })).json();
+    if (r.ok) { s.textContent = '✓ Saved'; s.style.color = 'var(--teal-strong)'; } else { s.textContent = r.error || 'Save failed'; s.style.color = '#a33'; }
+  } catch { s.textContent = 'Save failed'; s.style.color = '#a33'; }
+  btn.disabled = false;
+}
+
+const CV_TABS = [['profile', 'Profile'], ['focus', 'Focus themes'], ['skills', 'Skills & tools'], ['experience', 'Experience'], ['education', 'Education'], ['work', 'Selected work'], ['pdf', 'PDF']];
+function renderCvSubtabs() {
+  const host = $('#cvSubtabs'); host.innerHTML = '';
+  CV_TABS.forEach(([id, label]) => {
+    const b = el('button', 'cv-subtab' + (id === cvTab ? ' on' : '')); b.textContent = label;
+    b.onclick = () => { cvTab = id; renderCvSubtabs(); renderCvPanel(); };
+    host.appendChild(b);
+  });
+}
+function renderCvPanel() {
+  const p = $('#cvPanel'); p.innerHTML = '';
+  ({ profile: cvProfile, focus: cvFocus, skills: cvSkillsPanel, experience: cvExperience, education: cvEducation, work: cvWork, pdf: cvPdf }[cvTab] || cvProfile)(p);
+}
+
+/* option builders */
+const optThemes = () => CV.focusThemes.map((t) => ({ id: t.id, label: t.label }));
+const optCategories = () => CV.skillCategories.map((c) => ({ id: c.id, label: c.name }));
+const optExperience = () => CV.experience.map((e) => ({ id: e.id, label: e.title + (e.org ? ' · ' + e.org : '') }));
+const optEducation = () => CV.education.map((e) => ({ id: e.id, label: e.title }));
+const optSkills = () => CV.skills.map((s) => ({ id: s.id, label: s.name }));
+const optProjects = () => CVPROJECTS.map((p) => ({ id: p.slug, label: p.title }));
+
+/* labelled field */
+function field(label, value, oninput, opts = {}) {
+  const d = el('div', opts.full === false ? '' : 'full');
+  const l = el('label'); l.innerHTML = esc(label) + (opts.hint ? ' <span class="lh">' + esc(opts.hint) + '</span>' : '');
+  d.appendChild(l);
+  let inp;
+  if (opts.textarea) inp = el('textarea');
+  else if (opts.select) { inp = el('select'); opts.select.forEach((o) => { const op = el('option'); op.value = o; op.textContent = o; inp.appendChild(op); }); }
+  else { inp = el('input'); inp.type = opts.type || 'text'; }
+  inp.value = value ?? '';
+  inp.oninput = inp.onchange = () => { oninput(inp.value); cvMarkDirty(); };
+  d.appendChild(inp);
+  return d;
+}
+function visToggle(obj) {
+  const l = el('label', 'toggle'); const cb = el('input'); cb.type = 'checkbox'; cb.checked = obj.visible !== false;
+  cb.onchange = () => { obj.visible = cb.checked; cvMarkDirty(); };
+  l.appendChild(cb); l.appendChild(document.createTextNode('Visible')); return l;
+}
+function advId(obj) {
+  const d = el('details', 'adv'); d.innerHTML = '<summary>Advanced</summary>';
+  const f = el('div', 'meta');
+  const idf = field('Internal ID', obj.id, () => {}, { full: false, hint: 'reference — do not change' });
+  const inp = idf.querySelector('input'); inp.readOnly = true; inp.style.opacity = '.7';
+  f.appendChild(idf);
+  if ('order' in obj) f.appendChild(field('Order', obj.order, (v) => { obj.order = Number(v) || obj.order; }, { full: false, type: 'number' }));
+  d.appendChild(f); return d;
+}
+/* card control row: title, visible, up/down, delete */
+function cvControls(list, i, onChange, opts = {}) {
+  const wrap = el('div', 'cv-item-head');
+  const title = el('span', 't'); title.textContent = opts.title || ''; wrap.appendChild(title);
+  if (opts.badge) { const b = el('span', 'pill'); b.textContent = opts.badge; wrap.appendChild(b); }
+  wrap.appendChild(visToggle(list[i]));
+  const mk = (txt, tip, fn) => { const b = el('button', 'icon'); b.textContent = txt; b.title = tip; b.onclick = fn; return b; };
+  wrap.appendChild(mk('↑', 'Move up', () => { if (i > 0) { [list[i - 1], list[i]] = [list[i], list[i - 1]]; reindex(list); cvMarkDirty(); onChange(); } }));
+  wrap.appendChild(mk('↓', 'Move down', () => { if (i < list.length - 1) { [list[i + 1], list[i]] = [list[i], list[i + 1]]; reindex(list); cvMarkDirty(); onChange(); } }));
+  wrap.appendChild(mk('✕', 'Delete', () => { if (confirm('Delete “' + (opts.title || 'this item') + '”? Not permanent until you Save.')) { list.splice(i, 1); reindex(list); cvMarkDirty(); onChange(); } }));
+  return wrap;
+}
+/* searchable multi-select (chips + dropdown) */
+function cvMultiSelect(host, options, selected, onChange) {
+  let sel = [...selected];
+  host.className = 'ms'; host.innerHTML = '';
+  const input = el('input'); input.type = 'text'; input.placeholder = 'Search…';
+  const labelOf = (id) => { const o = options.find((x) => x.id === id); return o ? o.label : id; };
+  let drop = null;
+  const closeDrop = () => { if (drop) { drop.remove(); drop = null; } };
+  const renderChips = () => {
+    host.querySelectorAll('.chip').forEach((c) => c.remove());
+    sel.forEach((id) => {
+      const c = el('span', 'chip'); c.innerHTML = esc(labelOf(id)) + ' <button type="button" aria-label="Remove">×</button>';
+      c.querySelector('button').onclick = () => { sel = sel.filter((x) => x !== id); onChange([...sel]); renderChips(); };
+      host.insertBefore(c, input);
+    });
+  };
+  const openDrop = () => {
+    closeDrop();
+    const q = input.value.toLowerCase();
+    const opts = options.filter((o) => !sel.includes(o.id) && o.label.toLowerCase().includes(q));
+    if (!opts.length) return;
+    drop = el('div', 'ms-drop');
+    opts.slice(0, 60).forEach((o) => { const d = el('div', 'ms-opt'); d.textContent = o.label; d.onmousedown = (e) => { e.preventDefault(); sel.push(o.id); onChange([...sel]); input.value = ''; renderChips(); openDrop(); }; drop.appendChild(d); });
+    host.appendChild(drop);
+  };
+  input.addEventListener('focus', openDrop);
+  input.addEventListener('input', openDrop);
+  input.addEventListener('blur', () => setTimeout(closeDrop, 150));
+  host.appendChild(input); renderChips();
+}
+function msField(label, options, selected, onChange, hint) {
+  const d = el('div', 'full'); d.innerHTML = '<label>' + esc(label) + (hint ? ' <span class="lh">' + esc(hint) + '</span>' : '') + '</label>';
+  const host = el('div'); d.appendChild(host);
+  cvMultiSelect(host, options, selected, (ids) => { onChange(ids); cvMarkDirty(); });
+  return d;
+}
+/* bullet list editor */
+function bulletEditor(host, items, ph) {
+  host.innerHTML = '';
+  items.forEach((val, i) => {
+    const row = el('div', 'row'); row.style.marginBottom = '.35rem';
+    const inp = el('input'); inp.type = 'text'; inp.style.flex = '1'; inp.value = val; inp.placeholder = ph || '';
+    inp.oninput = () => { items[i] = inp.value; cvMarkDirty(); };
+    row.appendChild(inp);
+    const mk = (txt, fn) => { const b = el('button', 'icon'); b.textContent = txt; b.onclick = fn; return b; };
+    row.appendChild(mk('↑', () => { if (i > 0) { [items[i - 1], items[i]] = [items[i], items[i - 1]]; cvMarkDirty(); bulletEditor(host, items, ph); } }));
+    row.appendChild(mk('↓', () => { if (i < items.length - 1) { [items[i + 1], items[i]] = [items[i], items[i + 1]]; cvMarkDirty(); bulletEditor(host, items, ph); } }));
+    row.appendChild(mk('✕', () => { items.splice(i, 1); cvMarkDirty(); bulletEditor(host, items, ph); }));
+    host.appendChild(row);
+  });
+  const add = el('button', 'small'); add.textContent = '+ Add'; add.onclick = () => { items.push(''); cvMarkDirty(); bulletEditor(host, items, ph); };
+  host.appendChild(add);
+}
+function bulletField(label, arr) { const d = el('div', 'full'); d.innerHTML = '<label>' + esc(label) + '</label>'; const h = el('div'); d.appendChild(h); bulletEditor(h, arr, ''); return d; }
+
+/* relationship writers (single source, editable from both sides) */
+function setThemeMembership(entities, themeId, ids) {
+  entities.forEach((e) => { e.themes = e.themes || []; const has = e.themes.includes(themeId), want = ids.includes(e.id); if (want && !has) e.themes.push(themeId); if (!want && has) e.themes = e.themes.filter((x) => x !== themeId); });
+}
+function setSkillLink(fieldName, entityId, ids) {
+  CV.skills.forEach((s) => { s[fieldName] = s[fieldName] || []; const has = s[fieldName].includes(entityId), want = ids.includes(s.id); if (want && !has) s[fieldName].push(entityId); if (!want && has) s[fieldName] = s[fieldName].filter((x) => x !== entityId); });
+}
+
+/* ---- Profile ---- */
+function cvProfile(host) {
+  const p = CV.profile;
+  const card = el('section', 'card'); card.appendChild(h2('Profile & header'));
+  const form = el('div', 'meta');
+  form.appendChild(field('Heading', p.heading, (v) => p.heading = v));
+  form.appendChild(field('Professional headline / intro', p.lede, (v) => p.lede = v, { textarea: true }));
+  form.appendChild(field('Contact email', p.email, (v) => p.email = v, { full: false, type: 'text' }));
+  form.appendChild(field('Download button label', p.downloadLabel, (v) => p.downloadLabel = v, { full: false }));
+  form.appendChild(bulletField('Quick facts (shown under the intro)', p.facts = p.facts || []));
+  card.appendChild(form);
+  const adv = el('details', 'adv'); adv.innerHTML = '<summary>Advanced — page metadata</summary>';
+  const af = el('div', 'meta');
+  af.appendChild(field('Browser tab title', p.pageTitle, (v) => p.pageTitle = v));
+  af.appendChild(field('Meta description (SEO)', p.metaDescription, (v) => p.metaDescription = v, { textarea: true }));
+  adv.appendChild(af); card.appendChild(adv);
+  host.appendChild(card);
+}
+
+/* ---- Focus themes ---- */
+function cvFocus(host) {
+  const card = el('section', 'card'); card.appendChild(h2('Focus themes'));
+  card.appendChild(hintP('The buttons in the CV’s Focus bar. Highlighting a theme dims entries that don’t belong to it. Link skill categories and work experience to each theme here, or from those sections.'));
+  const list = CV.focusThemes;
+  if (!list.length) card.appendChild(emptyBox('No focus themes', 'Add one to power the Focus bar.'));
+  list.forEach((t, i) => {
+    const item = el('div', 'cv-item' + (t.visible === false ? ' hidden-item' : ''));
+    item.appendChild(cvControls(list, i, renderCvPanel, { title: t.label || '(theme)' }));
+    const form = el('div', 'meta');
+    form.appendChild(field('Label', t.label, (v) => t.label = v, { full: false }));
+    form.appendChild(field('Short description', t.description, (v) => t.description = v, { full: false, hint: 'optional' }));
+    form.appendChild(msField('Skill categories in this theme', optCategories(), CV.skillCategories.filter((c) => (c.themes || []).includes(t.id)).map((c) => c.id), (ids) => setThemeMembership(CV.skillCategories, t.id, ids)));
+    form.appendChild(msField('Work experience in this theme', optExperience(), CV.experience.filter((e) => (e.themes || []).includes(t.id)).map((e) => e.id), (ids) => setThemeMembership(CV.experience, t.id, ids)));
+    item.appendChild(form);
+    item.appendChild(advId(t));
+    card.appendChild(item);
+  });
+  const add = el('button', 'small'); add.textContent = '+ Add focus theme';
+  add.onclick = () => { list.push({ id: uid('theme'), label: 'New theme', description: '', order: list.length + 1, visible: true }); cvMarkDirty(); renderCvPanel(); };
+  card.appendChild(add); host.appendChild(card);
+}
+
+/* ---- Skills & categories ---- */
+function cvSkillsPanel(host) {
+  const card = el('section', 'card'); card.appendChild(h2('Skill categories & skills'));
+  card.appendChild(hintP('Grouped exactly as on the CV. Each skill can link to the experience, education and projects where you used it — the number badge on the CV counts those links.'));
+  const cats = CV.skillCategories;
+  if (!cats.length) card.appendChild(emptyBox('No categories', 'Add a category to hold skills.'));
+  cats.forEach((c, ci) => {
+    const item = el('div', 'cv-item' + (c.visible === false ? ' hidden-item' : ''));
+    item.appendChild(cvControls(cats, ci, renderCvPanel, { title: c.name || '(category)', badge: CV.skills.filter((s) => s.category === c.id).length + ' skills' }));
+    const form = el('div', 'meta');
+    form.appendChild(field('Category name', c.name, (v) => c.name = v, { full: false }));
+    form.appendChild(field('Short description', c.description, (v) => c.description = v, { full: false, hint: 'optional' }));
+    form.appendChild(msField('Focus themes', optThemes(), c.themes || [], (ids) => c.themes = ids));
+    item.appendChild(form);
+    const lab = el('label'); lab.textContent = 'Skills in this category'; lab.style.marginTop = '.5rem'; item.appendChild(lab);
+    CV.skills.filter((s) => s.category === c.id).sort((a, b) => (a.order ?? 99) - (b.order ?? 99)).forEach((s) => item.appendChild(cvSkillCard(s, c.id)));
+    const addSk = el('button', 'small'); addSk.textContent = '+ Add skill';
+    addSk.onclick = () => { CV.skills.push({ id: uid('sk'), name: 'New skill', type: 'skill', category: c.id, order: CV.skills.filter((x) => x.category === c.id).length + 1, visible: true, relatedRoles: [], relatedEducation: [], relatedProjects: [] }); cvMarkDirty(); renderCvPanel(); };
+    item.appendChild(addSk);
+    item.appendChild(advId(c));
+    card.appendChild(item);
+  });
+  const add = el('button', 'small'); add.textContent = '+ Add category';
+  add.onclick = () => { cats.push({ id: uid('cat'), name: 'New category', description: '', order: cats.length + 1, visible: true, themes: [] }); cvMarkDirty(); renderCvPanel(); };
+  card.appendChild(add); host.appendChild(card);
+}
+function cvSkillCard(s, catId) {
+  const count = (s.relatedRoles || []).length + (s.relatedEducation || []).length;
+  const box = el('div', 'cv-item'); box.style.marginTop = '.5rem'; box.style.background = 'var(--paper)';
+  const head = el('div', 'cv-item-head');
+  const nm = el('input'); nm.type = 'text'; nm.value = s.name; nm.style.flex = '1'; nm.style.fontWeight = '600';
+  nm.oninput = () => { s.name = nm.value; cvMarkDirty(); }; head.appendChild(nm);
+  const badge = el('span', 'pill'); badge.textContent = count + ' links'; head.appendChild(badge);
+  head.appendChild(visToggle(s));
+  const rm = el('button', 'icon'); rm.textContent = '✕'; rm.title = 'Delete skill';
+  rm.onclick = () => { if (confirm('Delete skill “' + s.name + '”?')) { CV.skills = CV.skills.filter((x) => x !== s); cvMarkDirty(); renderCvPanel(); } };
+  head.appendChild(rm); box.appendChild(head);
+  const det = el('details', 'adv'); det.innerHTML = '<summary>Links &amp; details</summary>';
+  const f = el('div', 'meta');
+  f.appendChild(field('Type', s.type, (v) => s.type = v, { full: false, select: ['skill', 'method', 'tool', 'technology', 'software', 'language', 'framework'] }));
+  f.appendChild(field('Proficiency / level', s.level, (v) => s.level = v, { full: false, hint: 'optional' }));
+  f.appendChild(field('Short description', s.description, (v) => s.description = v, { textarea: true, hint: 'optional' }));
+  f.appendChild(msField('Used in — work experience', optExperience(), s.relatedRoles || [], (ids) => s.relatedRoles = ids));
+  f.appendChild(msField('Used in — education', optEducation(), s.relatedEducation || [], (ids) => s.relatedEducation = ids));
+  f.appendChild(msField('Related projects', optProjects(), s.relatedProjects || [], (ids) => s.relatedProjects = ids));
+  det.appendChild(f); box.appendChild(det);
+  return box;
+}
+
+/* ---- Experience ---- */
+function cvExperience(host) {
+  const card = el('section', 'card'); card.appendChild(h2('Work experience'));
+  const list = CV.experience;
+  if (!list.length) card.appendChild(emptyBox('No experience yet', 'Add your first role.'));
+  list.forEach((r, i) => {
+    const item = el('div', 'cv-item' + (r.visible === false ? ' hidden-item' : ''));
+    item.appendChild(cvControls(list, i, renderCvPanel, { title: r.title || '(role)' }));
+    const form = el('div', 'meta');
+    form.appendChild(field('Job title', r.title, (v) => r.title = v));
+    form.appendChild(field('Organization', r.org, (v) => r.org = v, { full: false }));
+    form.appendChild(field('City / location', r.city, (v) => r.city = v, { full: false, hint: 'optional' }));
+    form.appendChild(field('Start', r.start, (v) => r.start = v, { full: false, hint: 'e.g. Jan 2024' }));
+    const endF = field('End', r.end, (v) => r.end = v, { full: false, hint: 'e.g. Jun 2025' }); form.appendChild(endF);
+    const cur = el('div', 'full'); const cl = el('label', 'toggle'); const cb = el('input'); cb.type = 'checkbox'; cb.checked = !!r.current;
+    cb.onchange = () => { r.current = cb.checked; cvMarkDirty(); endF.querySelector('input').disabled = cb.checked; };
+    cl.appendChild(cb); cl.appendChild(document.createTextNode('Current position (shows “Present”)')); cur.appendChild(cl); form.appendChild(cur);
+    endF.querySelector('input').disabled = !!r.current;
+    form.appendChild(field('Summary', r.summary, (v) => r.summary = v, { textarea: true }));
+    form.appendChild(bulletField('Highlights', r.bullets = r.bullets || []));
+    item.appendChild(form);
+    const md = el('details', 'adv'); md.innerHTML = '<summary>More-detail bullets (optional)</summary>'; const mdh = el('div'); md.appendChild(mdh); bulletEditor(mdh, r.details = r.details || [], 'Extra detail'); item.appendChild(md);
+    const rel = el('div', 'meta');
+    rel.appendChild(msField('Focus themes', optThemes(), r.themes || [], (ids) => r.themes = ids));
+    rel.appendChild(msField('Skills used here', optSkills(), CV.skills.filter((s) => (s.relatedRoles || []).includes(r.id)).map((s) => s.id), (ids) => setSkillLink('relatedRoles', r.id, ids)));
+    rel.appendChild(msField('Related projects', optProjects(), r.relatedProjects || [], (ids) => r.relatedProjects = ids));
+    item.appendChild(rel);
+    item.appendChild(advId(r));
+    card.appendChild(item);
+  });
+  const add = el('button', 'small'); add.textContent = '+ Add experience';
+  add.onclick = () => { list.push({ id: uid('exp'), title: 'New role', org: '', city: '', start: '', end: '', current: false, summary: '', bullets: [], details: [], themes: [], relatedProjects: [], order: list.length + 1, visible: true }); cvMarkDirty(); renderCvPanel(); };
+  card.appendChild(add); host.appendChild(card);
+}
+
+/* ---- Education ---- */
+function cvEducation(host) {
+  const card = el('section', 'card'); card.appendChild(h2('Education'));
+  const list = CV.education;
+  if (!list.length) card.appendChild(emptyBox('No education yet', 'Add a degree or programme.'));
+  list.forEach((e, i) => {
+    const item = el('div', 'cv-item' + (e.visible === false ? ' hidden-item' : ''));
+    item.appendChild(cvControls(list, i, renderCvPanel, { title: e.title || '(education)' }));
+    const form = el('div', 'meta');
+    form.appendChild(field('Degree / programme', e.title, (v) => e.title = v));
+    form.appendChild(field('Institution', e.institution, (v) => e.institution = v, { full: false }));
+    form.appendChild(field('City / location', e.city, (v) => e.city = v, { full: false, hint: 'optional' }));
+    form.appendChild(field('Start', e.start, (v) => e.start = v, { full: false }));
+    const endF = field('End', e.end, (v) => e.end = v, { full: false }); form.appendChild(endF);
+    const cur = el('div', 'full'); const cl = el('label', 'toggle'); const cb = el('input'); cb.type = 'checkbox'; cb.checked = !!e.current;
+    cb.onchange = () => { e.current = cb.checked; cvMarkDirty(); endF.querySelector('input').disabled = cb.checked; };
+    cl.appendChild(cb); cl.appendChild(document.createTextNode('Currently studying')); cur.appendChild(cl); form.appendChild(cur);
+    endF.querySelector('input').disabled = !!e.current;
+    form.appendChild(field('Grade / note', e.note, (v) => e.note = v, { hint: 'e.g. Grade average: 12' }));
+    form.appendChild(field('Description', e.body, (v) => e.body = v, { textarea: true }));
+    item.appendChild(form);
+    const adv = el('details', 'adv'); adv.innerHTML = '<summary>Extra (stored for export — not shown on the CV yet)</summary>';
+    const af = el('div', 'meta');
+    af.appendChild(field('Thesis / major project', e.thesis, (v) => e.thesis = v));
+    const cd = el('div', 'full'); cd.innerHTML = '<label>Courses / focus areas</label>'; const ch = el('div'); cd.appendChild(ch); bulletEditor(ch, e.courses = e.courses || [], 'Course'); af.appendChild(cd);
+    adv.appendChild(af); item.appendChild(adv);
+    const rel = el('div', 'meta');
+    rel.appendChild(msField('Focus themes', optThemes(), e.themes || [], (ids) => e.themes = ids));
+    rel.appendChild(msField('Skills used here', optSkills(), CV.skills.filter((s) => (s.relatedEducation || []).includes(e.id)).map((s) => s.id), (ids) => setSkillLink('relatedEducation', e.id, ids)));
+    rel.appendChild(msField('Related projects', optProjects(), e.relatedProjects || [], (ids) => e.relatedProjects = ids));
+    item.appendChild(rel);
+    item.appendChild(advId(e));
+    card.appendChild(item);
+  });
+  const add = el('button', 'small'); add.textContent = '+ Add education';
+  add.onclick = () => { list.push({ id: uid('edu'), title: 'New programme', institution: '', city: '', start: '', end: '', current: false, note: '', body: '', themes: [], relatedProjects: [], courses: [], thesis: '', order: list.length + 1, visible: true }); cvMarkDirty(); renderCvPanel(); };
+  card.appendChild(add); host.appendChild(card);
+}
+
+/* ---- Selected work ---- */
+function cvProjectLinks(slug) {
+  let n = 0;
+  CV.skills.forEach((s) => { if ((s.relatedProjects || []).includes(slug)) n++; });
+  CV.experience.forEach((e) => { if ((e.relatedProjects || []).includes(slug)) n++; });
+  CV.education.forEach((e) => { if ((e.relatedProjects || []).includes(slug)) n++; });
+  return n;
+}
+function cvWork(host) {
+  const card = el('section', 'card'); card.appendChild(h2('Selected work'));
+  card.appendChild(hintP('Which portfolio projects appear in the CV’s “Selected work” list, and their order. These link to your existing projects — nothing is duplicated.'));
+  const list = CV.projects;
+  if (!list.length) card.appendChild(emptyBox('No projects selected', 'Add projects from your portfolio below.'));
+  list.forEach((p, i) => {
+    const proj = CVPROJECTS.find((x) => x.slug === p.slug);
+    const item = el('div', 'cv-item' + (p.visible === false ? ' hidden-item' : ''));
+    const n = cvProjectLinks(p.slug);
+    item.appendChild(cvControls(list, i, renderCvPanel, { title: proj ? proj.title : p.slug, badge: n ? n + ' links' : '' }));
+    const meta = el('p', 'hint'); meta.innerHTML = 'Slug: <code>' + esc(p.slug) + '</code> · ' + (n ? ('connected to ' + n + ' skill/role/education item(s)') : 'not yet linked to any skill, role or education') + (proj ? '' : ' · <b>missing from portfolio</b>');
+    item.appendChild(meta);
+    card.appendChild(item);
+  });
+  const avail = CVPROJECTS.filter((x) => !list.some((p) => p.slug === x.slug));
+  const row = el('div', 'row'); row.style.marginTop = '.7rem';
+  const sel = el('select'); sel.innerHTML = '<option value="">+ Add a project…</option>' + avail.map((x) => '<option value="' + x.slug + '">' + esc(x.title) + '</option>').join('');
+  sel.onchange = () => { if (sel.value) { list.push({ slug: sel.value, order: list.length + 1, visible: true }); cvMarkDirty(); renderCvPanel(); } };
+  row.appendChild(sel);
+  if (!avail.length) { const s = el('span', 'hint'); s.textContent = 'All portfolio projects are already added.'; row.appendChild(s); }
+  card.appendChild(row); host.appendChild(card);
+}
+
+/* ---- PDF ---- */
+const fmtSize = (n) => !n ? '?' : (n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.round(n / 1024) + ' KB');
+async function uploadPdf(file) {
+  if (!file) return;
+  if (!/\.pdf$/i.test(file.name)) { alert('Please choose a .pdf file.'); return; }
+  const dataBase64 = await toB64(file);
+  const r = await (await fetch('/api/cv/pdf', { method: 'POST', body: JSON.stringify({ name: file.name, dataBase64 }) })).json();
+  if (r.ok) { CV.pdf = r.pdf; renderCvPanel(); } else alert(r.error || 'Upload failed');
+}
+function cvPdf(host) {
+  const card = el('section', 'card'); card.appendChild(h2('PDF CV'));
+  card.appendChild(hintP('Upload a traditional PDF CV. When present, the CV page’s “Download as PDF” button links to it; otherwise that button prints the page. Saved immediately — no need to press Save CV.'));
+  const p = CV.pdf;
+  if (p) {
+    const box = el('div', 'cv-item');
+    box.innerHTML = '<div class="cv-item-head"><span class="t">' + esc(p.name || 'cv.pdf') + '</span><span class="pill">' + fmtSize(p.size) + '</span></div>' +
+      '<p class="hint">Uploaded ' + esc(new Date(p.uploadedAt).toLocaleString()) + ' · served at <code>' + esc(BASE) + '/cv.pdf</code></p>';
+    const row = el('div', 'row');
+    const open = el('a', 'btn small'); open.href = '/api/cv/pdf'; open.target = '_blank'; open.textContent = 'Open / preview'; row.appendChild(open);
+    const repl = el('label', 'btn small'); repl.style.cursor = 'pointer'; repl.innerHTML = 'Replace <input type="file" accept="application/pdf" style="display:none">';
+    repl.querySelector('input').onchange = (e) => uploadPdf(e.target.files[0]); row.appendChild(repl);
+    const del = el('button', 'small danger'); del.textContent = 'Remove';
+    del.onclick = async () => { if (confirm('Remove the uploaded PDF? The download button will go back to printing the page.')) { await fetch('/api/cv/pdf', { method: 'DELETE' }); CV.pdf = null; renderCvPanel(); } };
+    row.appendChild(del); box.appendChild(row); card.appendChild(box);
+  } else {
+    card.appendChild(emptyBox('No PDF uploaded', 'The download button currently prints the page.'));
+    const up = el('label', 'btn small'); up.style.cursor = 'pointer'; up.style.marginTop = '.7rem'; up.style.display = 'inline-block';
+    up.innerHTML = 'Upload PDF <input type="file" accept="application/pdf" style="display:none">';
+    up.querySelector('input').onchange = (e) => uploadPdf(e.target.files[0]); card.appendChild(up);
+  }
+  host.appendChild(card);
+}
+
 /* ================= boot ================= */
 (async () => {
+  document.querySelectorAll('.topnav-btn').forEach((b) => (b.onclick = () => setView(b.dataset.view)));
+  $('#cvSave').addEventListener('click', saveCv);
+  $('#cvReload').addEventListener('click', () => { CV = null; loadCv(); });
   await loadPalette();
   refresh();
   try {
