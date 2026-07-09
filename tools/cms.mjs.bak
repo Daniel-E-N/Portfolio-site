@@ -1,0 +1,957 @@
+#!/usr/bin/env node
+/**
+ * Portfolio CMS — local only.
+ *
+ * `npm run cms` from the project root → http://localhost:4322
+ *  - Create projects by dragging in a folder of materials
+ *  - Edit projects with a structured GUI (meta, cover/gallery pickers,
+ *    section-based text editing, asset upload) — raw mode as fallback
+ *
+ * Zero dependencies — plain Node (18+). Never part of the public build.
+ */
+
+import http from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+
+const PORT = 4322;
+const ROOT = process.cwd();
+const PROJECTS = path.join(ROOT, 'src', 'content', 'projects');
+const PUBLIC_DIR = path.join(ROOT, 'public');
+// Outside the project root: the Astro dev server must never see trashed projects
+const TRASH = path.join(os.homedir(), '.portfolio-cms-trash');
+
+if (!fs.existsSync(PROJECTS)) {
+  console.error('✗ Run this from the project root (src/content/projects not found).');
+  process.exit(1);
+}
+
+let BASE = '';
+try {
+  const m = fs.readFileSync(path.join(ROOT, 'astro.config.mjs'), 'utf8').match(/base:\s*['"]([^'"]+)['"]/);
+  if (m) BASE = m[1];
+} catch {}
+
+/* ---------------- helpers ---------------- */
+
+const IMG_EXT = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif']);
+const VID_EXT = new Set(['.mp4', '.webm', '.mov']);
+const MIME = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif', '.avif': 'image/avif' };
+
+const slugify = (s) =>
+  s.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'project';
+
+const safeName = (s) => slugify(path.basename(s, path.extname(s))) + path.extname(s).toLowerCase();
+
+const humanize = (file) =>
+  path.basename(file, path.extname(file)).replace(/[-_]+/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
+
+const yamlStr = (s) => `"${String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+const unquote = (s) => {
+  s = s.trim();
+  if (s.startsWith('"') && s.endsWith('"')) return s.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+  return s;
+};
+
+function json(res, code, obj) {
+  res.writeHead(code, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(obj));
+}
+
+function readBody(req, limit = 400 * 1024 * 1024) {
+  return new Promise((resolve, reject) => {
+    let size = 0;
+    const chunks = [];
+    req.on('data', (c) => {
+      size += c.length;
+      if (size > limit) { reject(new Error('payload too large')); req.destroy(); return; }
+      chunks.push(c);
+    });
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('error', reject);
+  });
+}
+
+const inProjects = (p) => path.resolve(p).startsWith(path.resolve(PROJECTS) + path.sep);
+
+/** rename, falling back to copy+delete when source/dest are on different volumes */
+function moveSafe(src, dest) {
+  try {
+    fs.renameSync(src, dest);
+  } catch (e) {
+    if (e.code !== 'EXDEV') throw e;
+    fs.cpSync(src, dest, { recursive: true });
+    fs.rmSync(src, { recursive: true, force: true });
+  }
+}
+
+
+/* ---------------- markdown <-> structured ---------------- */
+
+/** Parses the constrained frontmatter this site uses (see content.config.ts). */
+function parseProject(raw) {
+  const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
+  if (!m) throw new Error('no frontmatter found');
+  const fmLines = m[1].split(/\r?\n/);
+  const body = raw.slice(m[0].length);
+
+  const meta = { tags: [], gallery: [], snapshot: null };
+  let ctx = null; // 'snapshot' | 'gallery'
+  for (let i = 0; i < fmLines.length; i++) {
+    const line = fmLines[i];
+    if (!line.trim()) continue;
+    const top = line.match(/^([a-zA-Z]+):\s*(.*)$/);
+    if (top) {
+      ctx = null;
+      const [, key, valRaw] = top;
+      const val = valRaw.trim();
+      if (key === 'snapshot') { meta.snapshot = { problem: '', approach: '', outcome: '' }; ctx = 'snapshot'; continue; }
+      if (key === 'gallery') { ctx = 'gallery'; continue; }
+      if (key === 'tags') {
+        const arr = val.match(/^\[(.*)\]$/);
+        meta.tags = arr && arr[1].trim() ? arr[1].split(/,(?![^"]*"(?:[^"]*"[^"]*")*[^"]*$)/).map((x) => unquote(x)) : [];
+        continue;
+      }
+      meta[key] = unquote(val);
+      continue;
+    }
+    if (ctx === 'snapshot') {
+      const sm = line.match(/^\s+(problem|approach|outcome):\s*(.*)$/);
+      if (sm) meta.snapshot[sm[1]] = unquote(sm[2]);
+    } else if (ctx === 'gallery') {
+      const gs = line.match(/^\s+-\s+src:\s*(.*)$/);
+      const ga = line.match(/^\s+alt:\s*(.*)$/);
+      if (gs) meta.gallery.push({ file: unquote(gs[1]).replace(/^\.\/assets\//, ''), alt: '' });
+      else if (ga && meta.gallery.length) meta.gallery[meta.gallery.length - 1].alt = unquote(ga[1]);
+    }
+  }
+  meta.cover = (meta.cover || '').replace(/^\.\/assets\//, '');
+  meta.year = Number(meta.year) || '';
+  meta.order = Number(meta.order) || 99;
+  if (meta.snapshot && !meta.snapshot.problem && !meta.snapshot.approach && !meta.snapshot.outcome) meta.snapshot = null;
+
+  /* body → sections on "## " headings */
+  const sections = [];
+  const parts = body.split(/^## /m);
+  const intro = parts.shift().trim();
+  if (intro) sections.push({ heading: '', body: intro });
+  for (const p of parts) {
+    const nl = p.indexOf('\n');
+    sections.push({
+      heading: (nl === -1 ? p : p.slice(0, nl)).trim(),
+      body: (nl === -1 ? '' : p.slice(nl + 1)).trim(),
+    });
+  }
+  return { meta, sections };
+}
+
+function serializeProject(meta, sections) {
+  const L = ['---'];
+  L.push(`title: ${yamlStr(meta.title)}`);
+  L.push(`summary: ${yamlStr(meta.summary || '')}`);
+  L.push(`year: ${Number(meta.year) || new Date().getFullYear()}`);
+  if (meta.collaborator) L.push(`collaborator: ${yamlStr(meta.collaborator)}`);
+  if (meta.role) L.push(`role: ${yamlStr(meta.role)}`);
+  L.push(`tags: [${(meta.tags || []).filter(Boolean).map(yamlStr).join(', ')}]`);
+  L.push(`theme: ${yamlStr(meta.theme || 'teal')}`);
+  L.push(`order: ${Number(meta.order) || 99}`);
+  L.push(`type: ${yamlStr(meta.type || 'case')}`);
+  if (meta.status) L.push(`status: ${yamlStr(meta.status)}`);
+  L.push(`cover: "./assets/${meta.cover}"`);
+  L.push(`coverAlt: ${yamlStr(meta.coverAlt || humanize(meta.cover || ''))}`);
+  const s = meta.snapshot;
+  if (s && (s.problem || s.approach || s.outcome)) {
+    L.push('snapshot:');
+    L.push(`  problem: ${yamlStr(s.problem || '')}`);
+    L.push(`  approach: ${yamlStr(s.approach || '')}`);
+    L.push(`  outcome: ${yamlStr(s.outcome || '')}`);
+  }
+  if ((meta.gallery || []).length) {
+    L.push('gallery:');
+    for (const g of meta.gallery) {
+      L.push(`  - src: "./assets/${g.file}"`);
+      L.push(`    alt: ${yamlStr(g.alt || humanize(g.file))}`);
+    }
+  } else {
+    L.push('gallery: []');
+  }
+  L.push('---', '');
+
+  const body = (sections || [])
+    .map((sec) => (sec.heading ? `## ${sec.heading}\n\n${sec.body.trim()}` : sec.body.trim()))
+    .filter(Boolean)
+    .join('\n\n');
+  return L.join('\n') + body + '\n';
+}
+
+function skeletonSections(bodyImages, videoUrls) {
+  const defs = [
+    ['Challenge — TODO: state the problem as a claim', 'TODO: 2–4 sentences. What was broken or missing, for whom, and why did it matter? Bold the key question.'],
+    ['Research — TODO: the main insight', 'TODO: what you did (interviews, observation, desk research) and the 1–2 findings that set the design constraint. End with the decision it produced.'],
+    ['Prototyping — TODO: what you built', 'TODO: what you made and iterated on. Keep it under 80 words; let images carry the detail.'],
+    ['Testing — TODO: what the test showed', 'TODO: who tested it, how, and the concrete feedback that shaped the final design.'],
+    ['Outcome & reflection', 'TODO: the result, what it taught you, and what you would do next.'],
+  ];
+  const imgs = [...bodyImages];
+  const per = Math.ceil(imgs.length / defs.length) || 0;
+  return defs.map(([heading, text], idx) => {
+    let body = text;
+    for (let k = 0; k < per; k++) {
+      const img = imgs.shift();
+      if (!img) break;
+      body += `\n\n![${humanize(img)}](./assets/${img})\n\n*TODO: caption for ${humanize(img).toLowerCase()}.*`;
+    }
+    if (idx === defs.length - 1) {
+      for (const v of videoUrls) body += `\n\n<video controls preload="metadata" src="${v}" style="width:100%; border-radius: 18px;"></video>`;
+    }
+    return { heading, body };
+  });
+}
+
+const listAssets = (slug) => {
+  const dir = path.join(PROJECTS, slug, 'assets');
+  return fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => IMG_EXT.has(path.extname(f).toLowerCase())) : [];
+};
+
+function frontmatterField(raw, key) {
+  const m = raw.match(new RegExp(`^${key}:\\s*"?([^"\\n]*)"?\\s*$`, 'm'));
+  return m ? m[1].trim() : '';
+}
+
+function listProjects() {
+  return fs.readdirSync(PROJECTS, { withFileTypes: true })
+    .filter((d) => d.isDirectory() && fs.existsSync(path.join(PROJECTS, d.name, 'index.md')))
+    .map((d) => {
+      const raw = fs.readFileSync(path.join(PROJECTS, d.name, 'index.md'), 'utf8');
+      return {
+        slug: d.name,
+        title: frontmatterField(raw, 'title') || d.name,
+        year: frontmatterField(raw, 'year'),
+        order: Number(frontmatterField(raw, 'order') || 999),
+        theme: frontmatterField(raw, 'theme') || 'teal',
+        type: frontmatterField(raw, 'type') || 'case',
+        cover: frontmatterField(raw, 'cover').replace(/^\.\/assets\//, ''),
+        assets: listAssets(d.name).length,
+      };
+    })
+    .sort((a, b) => a.order - b.order);
+}
+
+/* ---------------- server ---------------- */
+
+const server = http.createServer(async (req, res) => {
+  const u = new URL(req.url, `http://localhost:${PORT}`);
+  try {
+    if (req.method === 'GET' && u.pathname === '/') {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      return res.end(HTML);
+    }
+
+    /* serve asset thumbnails */
+    const asset = u.pathname.match(/^\/assets\/([a-z0-9-]+)\/([^/]+)$/);
+    if (req.method === 'GET' && asset) {
+      const f = path.join(PROJECTS, asset[1], 'assets', decodeURIComponent(asset[2]));
+      if (!inProjects(f) || !fs.existsSync(f)) { res.writeHead(404); return res.end(); }
+      res.writeHead(200, { 'Content-Type': MIME[path.extname(f).toLowerCase()] || 'application/octet-stream', 'Cache-Control': 'max-age=60' });
+      return res.end(fs.readFileSync(f));
+    }
+
+    if (req.method === 'GET' && u.pathname === '/api/projects') {
+      return json(res, 200, { base: BASE, projects: listProjects() });
+    }
+
+    /* parsed project (GUI editor) */
+    const parsed = u.pathname.match(/^\/api\/project\/([a-z0-9-]+)\/parsed$/);
+    if (parsed) {
+      const slug = parsed[1];
+      const file = path.join(PROJECTS, slug, 'index.md');
+      if (!inProjects(file) || !fs.existsSync(file)) return json(res, 404, { error: 'not found' });
+
+      if (req.method === 'GET') {
+        try {
+          const { meta, sections } = parseProject(fs.readFileSync(file, 'utf8'));
+          return json(res, 200, { meta, sections, assets: listAssets(slug) });
+        } catch (e) {
+          return json(res, 422, { error: 'could not parse — use raw mode', detail: String(e.message) });
+        }
+      }
+      if (req.method === 'PUT') {
+        const { meta, sections } = JSON.parse(await readBody(req));
+        if (!meta?.title || !meta?.cover) return json(res, 400, { error: 'title and cover are required' });
+        fs.writeFileSync(file, serializeProject(meta, sections));
+        return json(res, 200, { ok: true });
+      }
+    }
+
+    /* upload extra assets to an existing project */
+    const upload = u.pathname.match(/^\/api\/project\/([a-z0-9-]+)\/assets$/);
+    if (req.method === 'POST' && upload) {
+      const slug = upload[1];
+      const dir = path.join(PROJECTS, slug, 'assets');
+      if (!inProjects(dir) || !fs.existsSync(path.join(PROJECTS, slug, 'index.md'))) return json(res, 404, { error: 'not found' });
+      fs.mkdirSync(dir, { recursive: true });
+      const { files } = JSON.parse(await readBody(req));
+      const added = [];
+      for (const f of files || []) {
+        const name = safeName(f.name);
+        if (!IMG_EXT.has(path.extname(name))) continue;
+        fs.writeFileSync(path.join(dir, name), Buffer.from(f.dataBase64, 'base64'));
+        added.push(name);
+      }
+      return json(res, 200, { ok: true, added, assets: listAssets(slug) });
+    }
+
+    /* delete one asset (only when unreferenced) */
+    const delAsset = u.pathname.match(/^\/api\/project\/([a-z0-9-]+)\/asset\/([^/]+)$/);
+    if (req.method === 'DELETE' && delAsset) {
+      const slug = delAsset[1];
+      const name = decodeURIComponent(delAsset[2]);
+      const f = path.join(PROJECTS, slug, 'assets', name);
+      if (!inProjects(f) || !fs.existsSync(f)) return json(res, 404, { error: 'not found' });
+      const raw = fs.readFileSync(path.join(PROJECTS, slug, 'index.md'), 'utf8');
+      if (raw.includes(name)) return json(res, 409, { error: 'asset is referenced in the project — remove it from the text/cover/gallery first' });
+      fs.mkdirSync(TRASH, { recursive: true });
+      moveSafe(f, path.join(TRASH, `${slug}-${Date.now()}-${name}`));
+      return json(res, 200, { ok: true, assets: listAssets(slug) });
+    }
+
+    /* raw fallback + delete project */
+    const single = u.pathname.match(/^\/api\/project\/([a-z0-9-]+)$/);
+    if (single) {
+      const dir = path.join(PROJECTS, single[1]);
+      if (!inProjects(dir) || !fs.existsSync(path.join(dir, 'index.md'))) return json(res, 404, { error: 'not found' });
+
+      if (req.method === 'GET') {
+        return json(res, 200, { raw: fs.readFileSync(path.join(dir, 'index.md'), 'utf8'), assets: listAssets(single[1]) });
+      }
+      if (req.method === 'PUT') {
+        const { raw } = JSON.parse(await readBody(req));
+        if (typeof raw !== 'string' || !raw.startsWith('---')) return json(res, 400, { error: 'invalid content' });
+        fs.writeFileSync(path.join(dir, 'index.md'), raw);
+        return json(res, 200, { ok: true });
+      }
+      if (req.method === 'DELETE') {
+        fs.mkdirSync(TRASH, { recursive: true });
+        const dest = path.join(TRASH, `${single[1]}-${Date.now()}`);
+        moveSafe(dir, dest);
+        return json(res, 200, { ok: true, trashedTo: dest });
+      }
+    }
+
+    if (req.method === 'POST' && u.pathname === '/api/create') {
+      const { meta, files } = JSON.parse(await readBody(req));
+      if (!meta?.title || !meta?.cover) return json(res, 400, { error: 'title and cover image are required' });
+
+      const slug = slugify(meta.slug || meta.title);
+      const dir = path.join(PROJECTS, slug);
+      if (fs.existsSync(dir)) return json(res, 409, { error: `project "${slug}" already exists` });
+      const assetsDir = path.join(dir, 'assets');
+      fs.mkdirSync(assetsDir, { recursive: true });
+
+      const videoUrls = [];
+      const written = [];
+      for (const f of files || []) {
+        const name = safeName(f.name);
+        const ext = path.extname(name);
+        const buf = Buffer.from(f.dataBase64, 'base64');
+        if (IMG_EXT.has(ext)) { fs.writeFileSync(path.join(assetsDir, name), buf); written.push(name); }
+        else if (VID_EXT.has(ext)) {
+          const vd = path.join(PUBLIC_DIR, 'projects', slug);
+          fs.mkdirSync(vd, { recursive: true });
+          fs.writeFileSync(path.join(vd, name), buf);
+          videoUrls.push(`${BASE}/projects/${slug}/${name}`);
+        }
+      }
+
+      const used = new Set([meta.cover, ...(meta.gallery || []).map((g) => g.file)]);
+      const bodyImages = written.filter((n) => !used.has(n));
+      let sections;
+      if ((meta.body || '').trim()) {
+        sections = parseBodyToSections(meta.body);
+        if (videoUrls.length) {
+          const last = sections[sections.length - 1] || (sections.push({ heading: '', body: '' }), sections[sections.length - 1]);
+          last.body += '\n\n' + videoUrls.map((v) => `<video controls preload="metadata" src="${v}" style="width:100%; border-radius: 18px;"></video>`).join('\n\n');
+        }
+      } else {
+        sections = skeletonSections(bodyImages, videoUrls);
+      }
+      fs.writeFileSync(path.join(dir, 'index.md'), serializeProject({ ...meta, type: 'case' }, sections));
+
+      return json(res, 200, { ok: true, slug, images: written.length, videos: videoUrls.length, preview: `http://localhost:4321${BASE}/portfolio/${slug}` });
+    }
+
+    json(res, 404, { error: 'not found' });
+  } catch (e) {
+    json(res, 500, { error: String(e.message || e) });
+  }
+});
+
+function parseBodyToSections(body) {
+  const sections = [];
+  const parts = String(body).split(/^## /m);
+  const intro = parts.shift().trim();
+  if (intro) sections.push({ heading: '', body: intro });
+  for (const p of parts) {
+    const nl = p.indexOf('\n');
+    sections.push({ heading: (nl === -1 ? p : p.slice(0, nl)).trim(), body: (nl === -1 ? '' : p.slice(nl + 1)).trim() });
+  }
+  return sections;
+}
+
+/* ---------------- UI ---------------- */
+
+const HTML = /* html */ `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portfolio CMS — local</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper:#EBE4D5; --paper2:#DFD7C6; --ink:#161616; --ink2:#4b4b47;
+    --teal:#7EB2AC; --teal-strong:#2F6962; --teal-tint:#D3E6E4;
+    --blue:#395F8E; --sand:#FBE4A3; --line:rgba(22,22,22,.14); --r:14px;
+  }
+  * { box-sizing:border-box; margin:0; }
+  body { font-family:"Plus Jakarta Sans",sans-serif; background:var(--paper); color:var(--ink); padding:2rem 1.25rem 6rem; }
+  h1,h2,h3,h4,summary,button,.chip,.btn { font-family:"Outfit",sans-serif; }
+  .wrap { max-width:62rem; margin-inline:auto; }
+  h1 { font-size:1.6rem; display:flex; align-items:center; gap:.6rem; }
+  h1 .tag { font-size:.7rem; text-transform:uppercase; letter-spacing:.08em; background:var(--ink); color:var(--paper); padding:.3rem .6rem; border-radius:999px; }
+  .muted { color:var(--ink2); font-size:.9rem; }
+  section.card { background:#fffdf7; border:1px solid var(--line); border-radius:var(--r); padding:1.4rem; margin-top:1.4rem; }
+  section.card > h2 { font-size:1.1rem; margin-bottom:.9rem; }
+  table { width:100%; border-collapse:collapse; font-size:.92rem; }
+  th,td { text-align:left; padding:.55rem .5rem; border-bottom:1px solid var(--line); }
+  th { font-size:.72rem; text-transform:uppercase; letter-spacing:.07em; color:var(--ink2); }
+  td img.mini { width:3.4rem; height:2.4rem; object-fit:cover; border-radius:6px; vertical-align:middle; margin-right:.55rem; }
+  .dot { display:inline-block; width:.7rem; height:.7rem; border-radius:50%; vertical-align:0; margin-right:.35rem; }
+  .dot.teal{background:var(--teal)} .dot.blue{background:var(--blue)} .dot.sand{background:var(--sand)} .dot.dark{background:#26292B}
+  button, .btn { cursor:pointer; border:1.5px solid var(--ink); background:none; color:var(--ink); border-radius:999px; padding:.45rem 1rem; font-weight:600; font-size:.85rem; text-decoration:none; display:inline-block; }
+  button:hover, .btn:hover { background:var(--ink); color:var(--paper); }
+  button.primary { background:var(--ink); color:var(--paper); }
+  button.primary:hover { background:var(--teal-strong); border-color:var(--teal-strong); }
+  button.danger { border-color:#a33; color:#a33; } button.danger:hover { background:#a33; color:#fff; }
+  button.small { padding:.25rem .7rem; font-size:.75rem; }
+  button.ghost { border-color:var(--line); color:var(--ink2); }
+  #drop { border:2px dashed var(--ink); border-radius:var(--r); padding:2.4rem 1rem; text-align:center; background:var(--teal-tint); transition:background .2s; }
+  #drop.over { background:var(--teal); }
+  #drop input { display:none; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(7rem,1fr)); gap:.6rem; margin-top:.8rem; }
+  .thumb { position:relative; border:2px solid transparent; border-radius:10px; overflow:hidden; cursor:pointer; padding:0; background:none; }
+  .thumb img { width:100%; aspect-ratio:4/3; object-fit:cover; display:block; }
+  .thumb .badge { position:absolute; top:.3rem; left:.3rem; background:var(--ink); color:var(--paper); font-size:.63rem; padding:.1rem .45rem; border-radius:999px; font-weight:700; }
+  .thumb.cover { border-color:var(--teal-strong); }
+  .thumb.gal { border-color:var(--blue); }
+  .thumb .name { position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,.55); color:#fff; font-size:.6rem; padding:.15rem .3rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  form.meta { display:grid; grid-template-columns:1fr 1fr; gap:.8rem 1rem; margin-top:.6rem; }
+  form.meta .full { grid-column:1/-1; }
+  label { display:block; font-size:.72rem; text-transform:uppercase; letter-spacing:.07em; color:var(--ink2); margin-bottom:.25rem; font-weight:600; }
+  input[type=text], input[type=number], textarea, select { width:100%; font:inherit; padding:.5rem .65rem; border:1px solid var(--line); border-radius:8px; background:#fff; }
+  textarea { min-height:5rem; resize:vertical; }
+  textarea.body { min-height:12rem; font-family:ui-monospace,monospace; font-size:.82rem; }
+  .hint { font-size:.78rem; color:var(--ink2); margin-top:.3rem; }
+  .msg { margin-top:.9rem; padding:.7rem .9rem; border-radius:10px; font-size:.9rem; display:none; }
+  .msg.ok { display:block; background:var(--teal-tint); }
+  .msg.err { display:block; background:#f6d5d0; }
+  .sec { border:1px solid var(--line); border-radius:10px; padding:.9rem; margin-bottom:.8rem; background:#fff; }
+  .sec .row { display:flex; gap:.5rem; align-items:center; margin-bottom:.5rem; }
+  .sec .row input { font-weight:600; }
+  .sec textarea { min-height:7rem; font-family:ui-monospace,monospace; font-size:.8rem; border:1px solid var(--line); }
+  .editbar { position:sticky; top:0; z-index:5; display:flex; gap:.6rem; align-items:center; background:var(--paper); padding:.8rem 0; border-bottom:1px solid var(--line); }
+  .editbar h2 { font-size:1.15rem; margin-right:auto; }
+  .assets-tools { display:flex; gap:.6rem; align-items:center; margin-top:.7rem; flex-wrap:wrap; }
+  .pill { font-size:.72rem; background:var(--paper2); border-radius:999px; padding:.25rem .7rem; }
+  dialog { border:0; border-radius:var(--r); padding:1.2rem; width:min(94vw,52rem); }
+  dialog::backdrop { background:rgba(0,0,0,.45); }
+  .ignored { font-size:.78rem; color:var(--ink2); margin-top:.5rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Portfolio CMS <span class="tag">local only</span></h1>
+  <p class="muted">Manages <code>src/content/projects/</code>. Keep <code>npm run dev</code> running to preview changes instantly. Deploy as usual when happy.</p>
+
+  <!-- ============ HOME VIEW ============ -->
+  <div id="home">
+    <section class="card">
+      <h2>Projects</h2>
+      <table id="list"><thead><tr><th>Order</th><th>Project</th><th>Year</th><th>Assets</th><th></th></tr></thead><tbody></tbody></table>
+    </section>
+
+    <section class="card">
+      <h2>New project</h2>
+      <div id="drop">
+        <strong>Drag a project folder here</strong><br>
+        <span class="muted">images (png/jpg/webp/gif) · videos (mp4/webm) · notes (.md/.txt)</span><br><br>
+        <label class="btn" style="cursor:pointer">Choose folder <input type="file" id="picker" webkitdirectory multiple></label>
+      </div>
+
+      <div id="builder" style="display:none">
+        <h3 style="margin-top:1.2rem">1 · Pick images</h3>
+        <p class="hint">Click once = <b style="color:var(--teal-strong)">cover</b> · again = <b style="color:var(--blue)">gallery</b> (in click order) · again = body image.</p>
+        <div class="grid" id="thumbs"></div>
+        <p class="ignored" id="ignored"></p>
+        <h3 style="margin-top:1.4rem">2 · Details</h3>
+        <form class="meta" id="meta" onsubmit="return false">
+          <div><label>Title</label><input type="text" name="title" required></div>
+          <div><label>Slug (URL)</label><input type="text" name="slug" placeholder="auto from title"></div>
+          <div class="full"><label>Summary</label><textarea name="summary"></textarea></div>
+          <div><label>Year</label><input type="number" name="year"></div>
+          <div><label>Collaborator</label><input type="text" name="collaborator"></div>
+          <div><label>Role</label><input type="text" name="role"></div>
+          <div><label>Tags (comma-separated)</label><input type="text" name="tags"></div>
+          <div><label>Theme</label><select name="theme"><option>teal</option><option>blue</option><option>sand</option><option>dark</option></select></div>
+          <div><label>Order</label><input type="number" name="order"></div>
+          <div class="full"><label>Snapshot — problem</label><textarea name="sn_problem"></textarea></div>
+          <div class="full"><label>Snapshot — approach</label><textarea name="sn_approach"></textarea></div>
+          <div class="full"><label>Snapshot — outcome</label><textarea name="sn_outcome"></textarea></div>
+          <div class="full"><label>Body markdown (leave empty for a guided skeleton)</label><textarea name="body" class="body"></textarea></div>
+          <div class="full"><button class="primary" id="create">Create project</button></div>
+        </form>
+        <div class="msg" id="msg"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ EDITOR VIEW ============ -->
+  <div id="editorView" style="display:none">
+    <div class="editbar">
+      <button id="backBtn" class="ghost">← Back</button>
+      <h2 id="edTitle">Edit</h2>
+      <a id="edPreview" class="btn small" target="_blank">Preview</a>
+      <button id="rawToggle" class="small ghost">Raw mode</button>
+      <button id="saveBtn" class="primary">Save</button>
+    </div>
+    <div class="msg" id="edMsg"></div>
+
+    <div id="guiEditor">
+      <section class="card">
+        <h2>Details</h2>
+        <form class="meta" id="edMeta" onsubmit="return false">
+          <div class="full"><label>Title</label><input type="text" name="title"></div>
+          <div class="full"><label>Summary</label><textarea name="summary"></textarea></div>
+          <div><label>Year</label><input type="number" name="year"></div>
+          <div><label>Collaborator</label><input type="text" name="collaborator"></div>
+          <div><label>Role</label><input type="text" name="role"></div>
+          <div><label>Tags (comma-separated)</label><input type="text" name="tags"></div>
+          <div><label>Theme</label><select name="theme"><option>teal</option><option>blue</option><option>sand</option><option>dark</option></select></div>
+          <div><label>Order</label><input type="number" name="order"></div>
+          <div><label>Type</label><select name="type"><option value="case">case study</option><option value="gallery">image gallery</option></select></div>
+          <div><label>Status (optional, e.g. Work in progress)</label><input type="text" name="status"></div>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Snapshot <span class="muted" style="font-weight:400">(Problem / Approach / Outcome — shown under the hero)</span></h2>
+        <form class="meta" id="edSnap" onsubmit="return false">
+          <div class="full"><label>Problem</label><textarea name="problem"></textarea></div>
+          <div class="full"><label>Approach</label><textarea name="approach"></textarea></div>
+          <div class="full"><label>Outcome</label><textarea name="outcome"></textarea></div>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Cover & gallery</h2>
+        <p class="hint">Click once = <b style="color:var(--teal-strong)">cover</b> · again = <b style="color:var(--blue)">gallery</b> (numbered in click order) · again = neither. Cover alt text below.</p>
+        <div class="grid" id="edThumbs"></div>
+        <div class="assets-tools">
+          <label class="btn small" style="cursor:pointer">+ Add images <input type="file" id="edUpload" accept="image/*" multiple style="display:none"></label>
+          <span class="pill" id="edAssetCount"></span>
+          <span class="hint">Click the ⌫ on a thumbnail to delete an unused asset. Click 📋 to copy its markdown for pasting into a section.</span>
+        </div>
+        <form class="meta" style="margin-top:.9rem" onsubmit="return false">
+          <div class="full"><label>Cover alt text</label><input type="text" id="edCoverAlt"></div>
+        </form>
+      </section>
+
+      <section class="card" id="edSectionsCard">
+        <h2>Text sections</h2>
+        <p class="hint">Heading convention: “Label — claim” (the short label becomes the page menu). Images: <code>![alt](./assets/file.webp)</code>, caption = <code>*italic line*</code> right after, two images on consecutive lines = side-by-side.</p>
+        <div id="edSections"></div>
+        <button class="small" id="addSection">+ Add section</button>
+      </section>
+    </div>
+
+    <div id="rawEditor" style="display:none">
+      <section class="card">
+        <h2>Raw index.md</h2>
+        <textarea id="edRaw" class="body" style="min-height:26rem"></textarea>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+let BASE = '';
+
+/* ================= list ================= */
+async function refresh() {
+  const r = await (await fetch('/api/projects')).json();
+  BASE = r.base;
+  const tb = $('#list tbody');
+  tb.innerHTML = '';
+  for (const p of r.projects) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = \`<td>\${p.order}</td>
+      <td><img class="mini" src="/assets/\${p.slug}/\${encodeURIComponent(p.cover)}" onerror="this.style.display='none'"><span class="dot \${p.theme}"></span>\${p.title}\${p.type==='gallery' ? ' <span class="muted">(gallery)</span>':''}</td>
+      <td>\${p.year}</td><td>\${p.assets}</td>
+      <td style="white-space:nowrap; text-align:right">
+        <a class="btn small" target="_blank" href="http://localhost:4321\${BASE}/portfolio/\${p.slug}">Preview</a>
+        <button class="small" data-edit="\${p.slug}">Edit</button>
+        <button class="small danger" data-del="\${p.slug}">Delete</button>
+      </td>\`;
+    tb.appendChild(tr);
+  }
+}
+document.addEventListener('click', async (e) => {
+  const ed = e.target.dataset?.edit, del = e.target.dataset?.del;
+  if (ed) openEditor(ed);
+  if (del && confirm('Move project "' + del + '" to ~/.portfolio-cms-trash?')) {
+    await fetch('/api/project/' + del, { method:'DELETE' });
+    refresh();
+    alert('Deleted. If the site preview shows an "ImageNotFound" error afterwards, restart the dev server (Ctrl+C, then npm run dev) — Astro caches deleted projects until restarted.');
+  }
+});
+
+/* ================= GUI editor ================= */
+let ED = null; // { slug, meta, sections, assets, rawMode }
+
+async function openEditor(slug) {
+  const r = await fetch('/api/project/' + slug + '/parsed');
+  const data = await r.json();
+  if (!r.ok) {
+    // unparseable → raw fallback
+    const rr = await (await fetch('/api/project/' + slug)).json();
+    ED = { slug, rawMode: true, rawOnly: true, raw: rr.raw, assets: rr.assets };
+  } else {
+    ED = { slug, rawMode: false, rawOnly: false, ...data };
+  }
+  $('#edTitle').textContent = 'Edit · ' + slug;
+  $('#edPreview').href = 'http://localhost:4321' + BASE + '/portfolio/' + slug;
+  $('#home').style.display = 'none';
+  $('#editorView').style.display = 'block';
+  $('#edMsg').className = 'msg';
+  renderEditor();
+  window.scrollTo(0, 0);
+}
+
+function renderEditor() {
+  $('#guiEditor').style.display = ED.rawMode ? 'none' : 'block';
+  $('#rawEditor').style.display = ED.rawMode ? 'block' : 'none';
+  $('#rawToggle').textContent = ED.rawMode ? 'GUI mode' : 'Raw mode';
+  if (ED.rawMode) {
+    if (!ED.rawOnly && !ED.raw) ED.raw = null; // fetched lazily on toggle
+    if (ED.raw != null) $('#edRaw').value = ED.raw;
+    return;
+  }
+  const m = ED.meta;
+  const f = $('#edMeta');
+  f.title.value = m.title || '';
+  f.summary.value = m.summary || '';
+  f.year.value = m.year || '';
+  f.collaborator.value = m.collaborator || '';
+  f.role.value = m.role || '';
+  f.tags.value = (m.tags || []).join(', ');
+  f.theme.value = m.theme || 'teal';
+  f.order.value = m.order ?? 99;
+  f.type.value = m.type || 'case';
+  f.status.value = m.status || '';
+  const sn = $('#edSnap');
+  sn.problem.value = m.snapshot?.problem || '';
+  sn.approach.value = m.snapshot?.approach || '';
+  sn.outcome.value = m.snapshot?.outcome || '';
+  $('#edCoverAlt').value = m.coverAlt || '';
+  renderEdThumbs();
+  renderSections();
+}
+
+function renderEdThumbs() {
+  const g = $('#edThumbs');
+  g.innerHTML = '';
+  $('#edAssetCount').textContent = ED.assets.length + ' images in assets/';
+  const galFiles = ED.meta.gallery.map((x) => x.file);
+  for (const name of ED.assets) {
+    const isCover = ED.meta.cover === name;
+    const gi = galFiles.indexOf(name);
+    const b = document.createElement('div');
+    b.className = 'thumb' + (isCover ? ' cover' : gi > -1 ? ' gal' : '');
+    b.style.cursor = 'pointer';
+    b.innerHTML = \`
+      \${isCover ? '<span class="badge">COVER</span>' : gi > -1 ? '<span class="badge">GAL ' + (gi+1) + '</span>' : ''}
+      <img src="/assets/\${ED.slug}/\${encodeURIComponent(name)}" alt="">
+      <span class="name">\${name}</span>
+      <button class="small" title="Copy markdown" style="position:absolute;top:.25rem;right:2rem;padding:.05rem .4rem;background:#fff" data-copy="\${name}">📋</button>
+      <button class="small" title="Delete asset" style="position:absolute;top:.25rem;right:.25rem;padding:.05rem .4rem;background:#fff" data-delasset="\${name}">⌫</button>\`;
+    b.addEventListener('click', (e) => {
+      if (e.target.dataset.copy || e.target.dataset.delasset) return;
+      cycle(name);
+    });
+    g.appendChild(b);
+  }
+}
+function cycle(name) {
+  const m = ED.meta;
+  const gi = m.gallery.findIndex((x) => x.file === name);
+  if (m.cover === name) {                    // cover -> gallery
+    m.cover = '';
+    m.gallery.push({ file: name, alt: '' });
+  } else if (gi > -1) {                      // gallery -> none
+    m.gallery.splice(gi, 1);
+  } else if (!m.cover) {                     // none -> cover
+    m.cover = name;
+  } else {                                   // none -> gallery
+    m.gallery.push({ file: name, alt: '' });
+  }
+  renderEdThumbs();
+}
+document.addEventListener('click', async (e) => {
+  const cp = e.target.dataset?.copy, del = e.target.dataset?.delasset;
+  if (cp) {
+    const md = '![' + cp.replace(/\\.[^.]+$/,'').replace(/[-_]+/g,' ') + '](./assets/' + cp + ')\\n\\n*TODO: caption.*';
+    try { await navigator.clipboard.writeText(md); e.target.textContent = '✓'; setTimeout(()=>e.target.textContent='📋', 900); } catch {}
+  }
+  if (del) {
+    const r = await fetch('/api/project/' + ED.slug + '/asset/' + encodeURIComponent(del), { method:'DELETE' });
+    const out = await r.json();
+    if (out.ok) { ED.assets = out.assets; renderEdThumbs(); }
+    else alert(out.error);
+  }
+});
+
+function renderSections() {
+  const host = $('#edSections');
+  host.innerHTML = '';
+  ED.sections.forEach((sec, i) => {
+    const d = document.createElement('div');
+    d.className = 'sec';
+    d.innerHTML = \`
+      <div class="row">
+        <input type="text" value="" placeholder="Heading — e.g. Research — what the kitchen taught us" data-h="\${i}">
+        <button class="small ghost" data-up="\${i}" title="Move up">↑</button>
+        <button class="small ghost" data-down="\${i}" title="Move down">↓</button>
+        <button class="small danger" data-rm="\${i}" title="Remove section">✕</button>
+      </div>
+      <textarea data-b="\${i}"></textarea>\`;
+    d.querySelector('input').value = sec.heading;
+    d.querySelector('textarea').value = sec.body;
+    host.appendChild(d);
+  });
+}
+$('#edSections').addEventListener('input', (e) => {
+  const h = e.target.dataset?.h, b = e.target.dataset?.b;
+  if (h != null) ED.sections[+h].heading = e.target.value;
+  if (b != null) ED.sections[+b].body = e.target.value;
+});
+$('#edSections').addEventListener('click', (e) => {
+  const up = e.target.dataset?.up, down = e.target.dataset?.down, rm = e.target.dataset?.rm;
+  if (up != null && +up > 0) { const s = ED.sections; [s[+up-1], s[+up]] = [s[+up], s[+up-1]]; renderSections(); }
+  if (down != null && +down < ED.sections.length-1) { const s = ED.sections; [s[+down+1], s[+down]] = [s[+down], s[+down+1]]; renderSections(); }
+  if (rm != null && confirm('Remove this section?')) { ED.sections.splice(+rm, 1); renderSections(); }
+});
+$('#addSection').addEventListener('click', () => {
+  ED.sections.push({ heading: 'New section — claim', body: 'TODO' });
+  renderSections();
+});
+
+$('#edUpload').addEventListener('change', async (e) => {
+  const files = [];
+  for (const f of e.target.files) {
+    files.push({ name: f.name, dataBase64: await toB64(f) });
+  }
+  const r = await fetch('/api/project/' + ED.slug + '/assets', { method: 'POST', body: JSON.stringify({ files }) });
+  const out = await r.json();
+  if (out.ok) { ED.assets = out.assets; renderEdThumbs(); }
+  e.target.value = '';
+});
+
+$('#rawToggle').addEventListener('click', async () => {
+  if (ED.rawOnly) return; // stuck in raw when unparseable
+  if (!ED.rawMode) {
+    // GUI -> raw: serialize current state server-side? build client-side approximation: fetch fresh raw
+    const rr = await (await fetch('/api/project/' + ED.slug)).json();
+    ED.raw = rr.raw;
+    ED.rawMode = true;
+  } else {
+    // raw -> GUI: re-fetch parsed (discards unsaved raw edits)
+    if (!confirm('Switch to GUI mode? Unsaved raw edits are discarded.')) return;
+    const data = await (await fetch('/api/project/' + ED.slug + '/parsed')).json();
+    Object.assign(ED, data, { rawMode: false });
+  }
+  renderEditor();
+});
+
+$('#saveBtn').addEventListener('click', async () => {
+  const msg = $('#edMsg');
+  let resp;
+  if (ED.rawMode) {
+    resp = await fetch('/api/project/' + ED.slug, { method:'PUT', body: JSON.stringify({ raw: $('#edRaw').value }) });
+  } else {
+    const f = $('#edMeta'), sn = $('#edSnap');
+    const meta = {
+      ...ED.meta,
+      title: f.title.value.trim(),
+      summary: f.summary.value.trim(),
+      year: f.year.value,
+      collaborator: f.collaborator.value.trim(),
+      role: f.role.value.trim(),
+      tags: f.tags.value.split(',').map((s)=>s.trim()).filter(Boolean),
+      theme: f.theme.value,
+      order: f.order.value,
+      type: f.type.value,
+      status: f.status.value.trim(),
+      coverAlt: $('#edCoverAlt').value.trim(),
+      snapshot: { problem: sn.problem.value.trim(), approach: sn.approach.value.trim(), outcome: sn.outcome.value.trim() },
+    };
+    if (!meta.cover) { msg.className='msg err'; msg.textContent='Pick a cover image.'; return; }
+    resp = await fetch('/api/project/' + ED.slug + '/parsed', { method:'PUT', body: JSON.stringify({ meta, sections: ED.sections }) });
+  }
+  const out = await resp.json();
+  msg.className = out.ok ? 'msg ok' : 'msg err';
+  msg.innerHTML = out.ok ? '✓ Saved. <a target="_blank" href="' + $('#edPreview').href + '">Open preview →</a>' : (out.error || 'failed');
+  if (out.ok) refresh();
+});
+
+$('#backBtn').addEventListener('click', () => {
+  $('#editorView').style.display = 'none';
+  $('#home').style.display = 'block';
+  ED = null;
+});
+
+/* ================= create flow (unchanged) ================= */
+let files = [];
+let coverIdx = -1;
+let galleryOrder = [];
+const IMG = ['png','jpg','jpeg','webp','gif','avif'];
+const VID = ['mp4','webm','mov'];
+const TXT = ['md','txt'];
+const extOf = (n) => n.split('.').pop().toLowerCase();
+const safe = (n) => n.toLowerCase().replace(/\\.[^.]+$/,'').normalize('NFKD').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'') + '.' + extOf(n);
+const toB64 = (f) => new Promise((res) => {
+  const r = new FileReader();
+  r.onload = () => res(r.result.split(',')[1]);
+  r.readAsDataURL(f);
+});
+
+async function walkEntry(entry, out) {
+  if (entry.isFile) await new Promise((res) => entry.file((f) => { out.push(f); res(); }));
+  else if (entry.isDirectory) {
+    const reader = entry.createReader();
+    let batch;
+    do {
+      batch = await new Promise((res) => reader.readEntries(res));
+      for (const en of batch) await walkEntry(en, out);
+    } while (batch.length);
+  }
+}
+const drop = $('#drop');
+drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+drop.addEventListener('drop', async (e) => {
+  e.preventDefault(); drop.classList.remove('over');
+  const out = [];
+  for (const item of e.dataTransfer.items) {
+    const entry = item.webkitGetAsEntry?.();
+    if (entry) await walkEntry(entry, out);
+  }
+  intake(out, e.dataTransfer.items[0]?.webkitGetAsEntry?.()?.name || '');
+});
+$('#picker').addEventListener('change', (e) => {
+  const list = [...e.target.files];
+  intake(list, list[0]?.webkitRelativePath?.split('/')[0] || '');
+});
+
+async function intake(fileList, folderName) {
+  files = []; coverIdx = -1; galleryOrder = [];
+  const ignored = [];
+  let bodyText = '';
+  for (const f of fileList) {
+    const ext = extOf(f.name);
+    if (IMG.includes(ext)) files.push({ name: f.name, safe: safe(f.name), kind: 'img', dataBase64: await toB64(f), url: URL.createObjectURL(f) });
+    else if (VID.includes(ext)) files.push({ name: f.name, safe: safe(f.name), kind: 'vid', dataBase64: await toB64(f) });
+    else if (TXT.includes(ext)) bodyText += (bodyText ? '\\n\\n' : '') + (await f.text());
+    else ignored.push(f.name);
+  }
+  files.sort((a,b) => a.name.localeCompare(b.name, undefined, { numeric:true }));
+  const form = $('#meta');
+  form.title.value = folderName ? folderName.replace(/[-_]+/g,' ').replace(/^\\w/, (c)=>c.toUpperCase()) : '';
+  form.year.value = new Date().getFullYear();
+  form.body.value = bodyText;
+  const r = await (await fetch('/api/projects')).json();
+  form.order.value = Math.max(0, ...r.projects.map((p)=>p.order)) + 1;
+  renderThumbs();
+  $('#ignored').textContent = ignored.length ? 'Not imported (unsupported): ' + ignored.join(', ') : '';
+  const vids = files.filter((f)=>f.kind==='vid').length;
+  if (vids) $('#ignored').textContent += \` · \${vids} video(s) will be embedded at the end of the page.\`;
+  $('#builder').style.display = 'block';
+  $('#msg').className = 'msg';
+}
+
+function renderThumbs() {
+  const g = $('#thumbs');
+  g.innerHTML = '';
+  files.forEach((f, i) => {
+    if (f.kind !== 'img') return;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'thumb' + (i===coverIdx ? ' cover' : galleryOrder.includes(i) ? ' gal' : '');
+    const badge = i===coverIdx ? 'COVER' : galleryOrder.includes(i) ? 'GAL ' + (galleryOrder.indexOf(i)+1) : '';
+    b.innerHTML = \`\${badge ? '<span class="badge">'+badge+'</span>' : ''}<img src="\${f.url}" alt=""><span class="name">\${f.name}</span>\`;
+    b.onclick = () => {
+      if (coverIdx === i) { coverIdx = -1; galleryOrder.push(i); }
+      else if (galleryOrder.includes(i)) galleryOrder = galleryOrder.filter((x)=>x!==i);
+      else if (coverIdx === -1) coverIdx = i;
+      else galleryOrder.push(i);
+      renderThumbs();
+    };
+    g.appendChild(b);
+  });
+}
+
+$('#create').addEventListener('click', async () => {
+  const form = $('#meta');
+  const msg = $('#msg');
+  if (coverIdx === -1) { msg.className='msg err'; msg.textContent='Pick a cover image first.'; return; }
+  if (!form.title.value.trim()) { msg.className='msg err'; msg.textContent='Title is required.'; return; }
+  msg.className='msg ok'; msg.textContent='Creating…';
+  const meta = {
+    title: form.title.value.trim(),
+    slug: form.slug.value.trim(),
+    summary: form.summary.value.trim(),
+    year: form.year.value,
+    collaborator: form.collaborator.value.trim(),
+    role: form.role.value.trim(),
+    tags: form.tags.value.split(',').map((s)=>s.trim()).filter(Boolean),
+    theme: form.theme.value,
+    order: form.order.value,
+    cover: files[coverIdx].safe,
+    coverAlt: '',
+    snapshot: { problem: form.sn_problem.value.trim(), approach: form.sn_approach.value.trim(), outcome: form.sn_outcome.value.trim() },
+    gallery: galleryOrder.map((i)=>({ file: files[i].safe, alt: '' })),
+    body: form.body.value,
+  };
+  const r = await fetch('/api/create', { method:'POST', body: JSON.stringify({ meta, files: files.map((f)=>({ name: f.name, dataBase64: f.dataBase64 })) }) });
+  const out = await r.json();
+  if (out.ok) {
+    msg.className='msg ok';
+    msg.innerHTML = \`✓ Created <b>\${out.slug}</b> (\${out.images} images\${out.videos ? ', '+out.videos+' videos' : ''}). <a target="_blank" href="\${out.preview}">Open preview →</a> or <button class="small" onclick="openEditor('\${out.slug}')">fine-tune in the editor</button>\`;
+    $('#builder').style.display='none';
+    refresh();
+  } else {
+    msg.className='msg err'; msg.textContent = out.error || 'failed';
+  }
+});
+
+refresh();
+</script>
+</body>
+</html>`;
+
+server.listen(PORT, '127.0.0.1', () => {
+  console.log(`\n  Portfolio CMS  →  http://localhost:${PORT}\n  (local only — nothing is exposed publicly)\n`);
+});

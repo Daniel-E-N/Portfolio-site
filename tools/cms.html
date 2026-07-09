@@ -1,0 +1,1303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portfolio CMS — local</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper:#EBE4D5; --paper2:#DFD7C6; --ink:#161616; --ink2:#4b4b47;
+    --teal:#7EB2AC; --teal-strong:#2F6962; --teal-tint:#D3E6E4;
+    --blue:#395F8E; --sand:#FBE4A3; --dark:#26292B;
+    --line:rgba(22,22,22,.14); --r:14px;
+  }
+  * { box-sizing:border-box; margin:0; }
+  body { font-family:"Plus Jakarta Sans",sans-serif; background:var(--paper); color:var(--ink); padding:2rem 1.25rem 6rem; }
+  h1,h2,h3,h4,summary,button,.chip,.btn,.tab { font-family:"Outfit",sans-serif; }
+  .wrap { max-width:64rem; margin-inline:auto; }
+  h1 { font-size:1.6rem; display:flex; align-items:center; gap:.6rem; }
+  h1 .tag { font-size:.7rem; text-transform:uppercase; letter-spacing:.08em; background:var(--ink); color:var(--paper); padding:.3rem .6rem; border-radius:999px; }
+  .muted { color:var(--ink2); font-size:.85rem; font-weight:400; }
+  code { background:var(--paper2); padding:.05rem .3rem; border-radius:5px; font-size:.85em; }
+  section.card { background:#fffdf7; border:1px solid var(--line); border-radius:var(--r); padding:1.4rem; margin-top:1.4rem; }
+  section.card > h2 { font-size:1.1rem; margin-bottom:.5rem; display:flex; gap:.5rem; align-items:baseline; flex-wrap:wrap; }
+  table { width:100%; border-collapse:collapse; font-size:.92rem; }
+  th,td { text-align:left; padding:.55rem .5rem; border-bottom:1px solid var(--line); }
+  th { font-size:.72rem; text-transform:uppercase; letter-spacing:.07em; color:var(--ink2); }
+  td img.mini { width:3.4rem; height:2.4rem; object-fit:cover; border-radius:6px; vertical-align:middle; margin-right:.55rem; }
+  tr[draggable] { cursor:default; }
+  td.drag { cursor:grab; color:var(--ink2); user-select:none; white-space:nowrap; font-weight:600; }
+  td.drag:active { cursor:grabbing; }
+  tr.dragging { opacity:.4; }
+  tr.dragover-line td { box-shadow: inset 0 2px 0 var(--teal-strong); }
+  .dot { display:inline-block; width:.7rem; height:.7rem; border-radius:50%; vertical-align:0; margin-right:.35rem; }
+  .dot.teal{background:var(--teal)} .dot.blue{background:var(--blue)} .dot.sand{background:var(--sand)} .dot.dark{background:var(--dark)}
+  button, .btn { cursor:pointer; border:1.5px solid var(--ink); background:none; color:var(--ink); border-radius:999px; padding:.45rem 1rem; font-weight:600; font-size:.85rem; text-decoration:none; display:inline-block; }
+  button:hover, .btn:hover { background:var(--ink); color:var(--paper); }
+  button.primary { background:var(--ink); color:var(--paper); }
+  button.primary:hover { background:var(--teal-strong); border-color:var(--teal-strong); }
+  button.danger { border-color:#a33; color:#a33; } button.danger:hover { background:#a33; color:#fff; }
+  button.small { padding:.25rem .7rem; font-size:.75rem; }
+  button.ghost { border-color:var(--line); color:var(--ink2); }
+  button.ghost:hover { background:var(--ink2); color:var(--paper); border-color:var(--ink2); }
+  button.icon { border:1px solid var(--line); border-radius:8px; padding:.2rem .5rem; font-size:.8rem; background:#fff; color:var(--ink2); font-weight:600; }
+  button.icon:hover { background:var(--ink); color:var(--paper); }
+  #drop { border:2px dashed var(--ink); border-radius:var(--r); padding:2.4rem 1rem; text-align:center; background:var(--teal-tint); transition:background .2s; }
+  #drop.over { background:var(--teal); }
+  #drop input { display:none; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(7rem,1fr)); gap:.6rem; margin-top:.8rem; }
+  .thumb { position:relative; border:2px solid transparent; border-radius:10px; overflow:hidden; cursor:pointer; padding:0; background:none; }
+  .thumb img { width:100%; aspect-ratio:4/3; object-fit:cover; display:block; }
+  .thumb .badge { position:absolute; top:.3rem; left:.3rem; background:var(--ink); color:var(--paper); font-size:.63rem; padding:.1rem .45rem; border-radius:999px; font-weight:700; }
+  .thumb.cover { border-color:var(--teal-strong); }
+  .thumb.gal { border-color:var(--blue); }
+  .thumb .name { position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,.55); color:#fff; font-size:.6rem; padding:.15rem .3rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  form.meta { display:grid; grid-template-columns:1fr 1fr; gap:.8rem 1rem; margin-top:.6rem; }
+  form.meta .full { grid-column:1/-1; }
+  label { display:block; font-size:.72rem; text-transform:uppercase; letter-spacing:.07em; color:var(--ink2); margin-bottom:.25rem; font-weight:600; }
+  label .lh { text-transform:none; letter-spacing:0; font-weight:400; color:var(--ink2); opacity:.8; margin-left:.4rem; }
+  input[type=text], input[type=number], textarea, select { width:100%; font:inherit; padding:.5rem .65rem; border:1px solid var(--line); border-radius:8px; background:#fff; }
+  input:focus, textarea:focus, select:focus { outline:2px solid var(--teal); outline-offset:0; border-color:var(--teal); }
+  textarea { min-height:5rem; resize:vertical; }
+  textarea.body { min-height:12rem; font-family:ui-monospace,monospace; font-size:.82rem; }
+  .hint { font-size:.78rem; color:var(--ink2); margin-top:.3rem; }
+  .msg { margin-top:.9rem; padding:.7rem .9rem; border-radius:10px; font-size:.9rem; display:none; }
+  .msg.ok { display:block; background:var(--teal-tint); }
+  .msg.err { display:block; background:#f6d5d0; }
+  .row { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
+  .editbar { position:sticky; top:0; z-index:5; display:flex; gap:.6rem; align-items:center; background:var(--paper); padding:.8rem 0; border-bottom:1px solid var(--line); }
+  .editbar h2 { font-size:1.15rem; margin-right:auto; }
+  .pill { font-size:.72rem; background:var(--paper2); border-radius:999px; padding:.25rem .7rem; }
+  details.adv { margin-top:1rem; }
+  details.adv > summary { cursor:pointer; font-size:.82rem; color:var(--ink2); font-weight:600; padding:.3rem 0; list-style:revert; }
+  details.adv.card > summary { font-size:.95rem; }
+  .empty { border:1px dashed var(--line); border-radius:10px; padding:1.4rem; text-align:center; color:var(--ink2); background:#fff; }
+  .empty strong { color:var(--ink); display:block; margin-bottom:.3rem; font-family:"Outfit",sans-serif; }
+
+  /* ---- skill chips ---- */
+  .chips-field { display:flex; flex-wrap:wrap; gap:.4rem; padding:.4rem; border:1px solid var(--line); border-radius:8px; background:#fff; align-items:center; }
+  .chips-field:focus-within { outline:2px solid var(--teal); border-color:var(--teal); }
+  .chip { display:inline-flex; align-items:center; gap:.35rem; background:var(--teal-tint); color:var(--teal-strong); border-radius:999px; padding:.25rem .3rem .25rem .7rem; font-size:.8rem; font-weight:600; }
+  .chip button { border:0; background:none; color:var(--teal-strong); cursor:pointer; padding:0 .2rem; font-size:.9rem; line-height:1; border-radius:999px; }
+  .chip button:hover { background:var(--teal-strong); color:#fff; }
+  .chips-field input { border:0; outline:0; flex:1; min-width:8rem; padding:.25rem; background:none; }
+
+  /* ---- swatches ---- */
+  .swatches { display:flex; gap:.55rem; align-items:center; flex-wrap:wrap; }
+  .swatch { width:2.2rem; height:2.2rem; border-radius:50%; border:2px solid var(--line); cursor:pointer; position:relative; padding:0; }
+  .swatch.on { border-color:var(--ink); box-shadow:0 0 0 2px #fffdf7,0 0 0 4px var(--ink); }
+  .swatch-add { width:2.2rem; height:2.2rem; border-radius:50%; border:2px dashed var(--line); background:#fff; color:var(--ink2); font-size:1.15rem; line-height:1; cursor:pointer; padding:0; }
+  .swatch-add:hover { border-color:var(--ink); color:var(--ink); background:#fff; }
+  .swatch-manage { border:0; background:none; color:var(--ink2); font-size:.74rem; text-decoration:underline; cursor:pointer; padding:0 .2rem; }
+  .swatch-manage:hover { color:var(--ink); background:none; }
+  .accent-row { display:grid; grid-template-columns:2.4rem 1fr auto; gap:.6rem; align-items:center; margin-bottom:.5rem; }
+  .accent-row input[type=color] { width:2.4rem; height:2.4rem; padding:0; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer; }
+  .dot.custom { border:1px solid rgba(0,0,0,.15); }
+
+  /* ---- cover / gallery ---- */
+  .coverbox { display:flex; gap:1rem; align-items:flex-start; flex-wrap:wrap; }
+  .coverbox img { width:14rem; max-width:100%; aspect-ratio:16/10; object-fit:cover; border-radius:10px; border:1px solid var(--line); }
+  .cover-side { flex:1; min-width:14rem; }
+  .galgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(9rem,1fr)); gap:.7rem; }
+  .galcard { border:1px solid var(--line); border-radius:10px; overflow:hidden; background:#fff; display:flex; flex-direction:column; }
+  .galcard img { width:100%; aspect-ratio:4/3; object-fit:cover; }
+  .galcard .body { padding:.4rem; display:flex; flex-direction:column; gap:.3rem; }
+  .galcard input { font-size:.75rem; padding:.3rem .4rem; }
+  .galcard .ctl { display:flex; gap:.25rem; justify-content:space-between; }
+
+  /* ---- sections ---- */
+  .sec { border:1px solid var(--line); border-radius:12px; padding:1rem; margin-bottom:1rem; background:#fff; }
+  .sec.draghint { border-style:dashed; }
+  .sec-head { display:grid; grid-template-columns:minmax(8rem,1fr) 2fr auto; gap:.6rem; align-items:end; margin-bottom:.6rem; }
+  .sec-head .ctl { display:flex; gap:.25rem; align-self:center; }
+  .sec-intro-badge { font-size:.7rem; background:var(--sand); color:var(--ink); padding:.2rem .55rem; border-radius:999px; font-weight:700; }
+  .tabs { display:flex; gap:.3rem; margin-bottom:.4rem; }
+  .tab { border:1px solid var(--line); background:#fff; color:var(--ink2); border-radius:8px 8px 0 0; padding:.3rem .8rem; font-size:.78rem; font-weight:600; cursor:pointer; }
+  .tab.on { background:var(--ink); color:var(--paper); border-color:var(--ink); }
+  .toolbar { display:flex; gap:.25rem; flex-wrap:wrap; padding:.35rem; border:1px solid var(--line); border-bottom:0; border-radius:8px 8px 0 0; background:var(--paper2); }
+  .toolbar button { border:1px solid var(--line); background:#fff; border-radius:6px; padding:.15rem .5rem; font-size:.8rem; font-weight:600; color:var(--ink); min-width:1.9rem; }
+  .toolbar button:hover { background:var(--ink); color:var(--paper); }
+  .sec textarea.md { min-height:7rem; border-radius:0 0 8px 8px; font-family:ui-monospace,monospace; font-size:.82rem; }
+  .preview { border:1px solid var(--line); border-radius:8px; padding:.9rem 1.1rem; background:#fffdf7; min-height:5rem; }
+  .preview h2,.preview h3,.preview h4 { font-family:"Outfit",sans-serif; margin:.6rem 0 .3rem; }
+  .preview p { margin:.5rem 0; line-height:1.5; }
+  .preview ul,.preview ol { margin:.5rem 0 .5rem 1.2rem; }
+  .preview blockquote { border-left:3px solid var(--teal); margin:.6rem 0; padding:.2rem 0 .2rem .8rem; color:var(--ink2); font-style:italic; }
+  .preview img { max-width:100%; border-radius:8px; margin:.3rem 0; }
+  .preview p.imgpara { display:flex; gap:.6rem; }
+  .preview p.imgpara img { flex:1; min-width:0; }
+  .preview p.caption { font-size:.82rem; color:var(--ink2); font-style:italic; margin-top:-.2rem; }
+  .preview .section-claim { font-family:"Outfit",sans-serif; font-weight:600; font-size:1.05rem; color:var(--ink); margin:.1rem 0 .5rem; }
+  .preview .ph { color:var(--ink2); font-style:italic; }
+
+  /* ---- section images ---- */
+  .sec-imgs { margin-top:.8rem; border-top:1px dashed var(--line); padding-top:.7rem; }
+  .sec-imgs > .lbl { font-size:.72rem; text-transform:uppercase; letter-spacing:.07em; color:var(--ink2); font-weight:600; margin-bottom:.5rem; }
+  .imgcard { display:grid; grid-template-columns:5.5rem 1fr auto; gap:.7rem; align-items:start; border:1px solid var(--line); border-radius:10px; padding:.6rem; margin-bottom:.6rem; background:var(--paper); }
+  .imgcard img { width:5.5rem; height:4.2rem; object-fit:cover; border-radius:6px; }
+  .imgcard .fields { display:flex; flex-direction:column; gap:.35rem; }
+  .imgcard .fields input { font-size:.8rem; }
+  .imgcard .sbs { font-size:.72rem; color:var(--ink2); display:flex; align-items:center; gap:.35rem; text-transform:none; letter-spacing:0; margin:0; font-weight:500; }
+  .imgcard .ctl { display:flex; flex-direction:column; gap:.25rem; }
+
+  /* ---- picker dialog ---- */
+  dialog { border:0; border-radius:var(--r); padding:1.2rem; width:min(94vw,54rem); background:#fffdf7; }
+  dialog::backdrop { background:rgba(0,0,0,.45); }
+  .pickgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(7rem,1fr)); gap:.6rem; margin:.8rem 0; max-height:60vh; overflow:auto; }
+  .pickthumb { position:relative; border:2px solid transparent; border-radius:10px; overflow:hidden; cursor:pointer; padding:0; background:none; }
+  .pickthumb img { width:100%; aspect-ratio:4/3; object-fit:cover; display:block; }
+  .pickthumb.sel { border-color:var(--teal-strong); }
+  .pickthumb.sel::after { content:'✓'; position:absolute; top:.3rem; right:.3rem; background:var(--teal-strong); color:#fff; border-radius:50%; width:1.3rem; height:1.3rem; display:grid; place-items:center; font-size:.8rem; }
+  .pickthumb .name { position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,.55); color:#fff; font-size:.6rem; padding:.15rem .3rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Portfolio CMS <span class="tag">local only</span></h1>
+  <p class="muted">Manages <code>src/content/projects/</code>. Keep <code>npm run dev</code> running to preview changes instantly. Deploy as usual when happy.</p>
+
+  <!-- ============ HOME VIEW ============ -->
+  <div id="home">
+    <section class="card">
+      <h2>Projects</h2>
+      <p class="hint">Drag the ⠿ handle to reorder (updates the order numbers). Use <b>Quick edit</b> for fast title / year / accent / cover changes.</p>
+      <table id="list"><thead><tr><th>Order</th><th>Project</th><th>Year</th><th>Assets</th><th></th></tr></thead><tbody></tbody></table>
+    </section>
+
+    <section class="card">
+      <h2>New project</h2>
+      <div id="drop">
+        <strong>Drag a project folder here</strong><br>
+        <span class="muted">images (png/jpg/webp/gif) · videos (mp4/webm) · notes (.md/.txt)</span><br><br>
+        <label class="btn" style="cursor:pointer">Choose folder <input type="file" id="picker" webkitdirectory multiple></label>
+      </div>
+      <p class="hint" style="text-align:center; margin-top:.7rem">or <button class="small" id="blankBtn">start a blank project</button> and add images later</p>
+
+      <div id="builder" style="display:none">
+        <h3 style="margin-top:1.2rem" id="builderStep1">1 · Pick images</h3>
+        <p class="hint">Click once = <b style="color:var(--teal-strong)">cover</b> · again = <b style="color:var(--blue)">gallery</b> (in click order) · again = body image.</p>
+        <div class="grid" id="thumbs"></div>
+        <div class="row" style="margin:.5rem 0"><label class="btn small" style="cursor:pointer">+ Add images <input type="file" id="builderAdd" accept="image/*" multiple style="display:none"></label></div>
+        <p class="hint" id="ignored"></p>
+        <h3 style="margin-top:1.4rem">2 · Details</h3>
+        <form class="meta" id="meta" onsubmit="return false">
+          <div><label>Title</label><input type="text" name="title" required></div>
+          <div><label>Slug (URL) <span class="lh">auto from title</span></label><input type="text" name="slug"></div>
+          <div class="full"><label>Summary</label><textarea name="summary"></textarea></div>
+          <div><label>Year</label><input type="number" name="year"></div>
+          <div><label>Collaborator</label><input type="text" name="collaborator"></div>
+          <div class="full"><label>Role</label><input type="text" name="role"></div>
+          <div class="full"><label>Skills</label><div id="cSkills" class="chips-field"></div><p class="hint">Type a skill and press Enter. Suggestions come from your other projects, About and CV.</p></div>
+          <div class="full"><label>Accent colour</label><div id="cTheme" class="swatches"></div></div>
+          <div><label>Order</label><input type="number" name="order"></div>
+          <div class="full"><label>Snapshot — problem <span class="lh">optional</span></label><textarea name="sn_problem"></textarea></div>
+          <div class="full"><label>Snapshot — approach</label><textarea name="sn_approach"></textarea></div>
+          <div class="full"><label>Snapshot — outcome</label><textarea name="sn_outcome"></textarea></div>
+          <details class="adv full"><summary>Advanced — paste ready-made Markdown body</summary>
+            <p class="hint">Leave empty for a guided skeleton you fill in with the visual editor after creating.</p>
+            <textarea name="body" class="body"></textarea>
+          </details>
+          <div class="full"><button class="primary" id="create">Create project</button></div>
+        </form>
+        <div class="msg" id="msg"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ EDITOR VIEW ============ -->
+  <div id="editorView" style="display:none">
+    <div class="editbar">
+      <button id="backBtn" class="ghost">← Back</button>
+      <h2 id="edTitle">Edit</h2>
+      <a id="edPreview" class="btn small" target="_blank">Preview ↗</a>
+      <button id="rawToggle" class="small ghost">Edit raw file</button>
+      <button id="saveBtn" class="primary">Save</button>
+    </div>
+    <div class="msg" id="edMsg"></div>
+
+    <div id="guiEditor">
+      <section class="card">
+        <h2>Details</h2>
+        <form class="meta" id="edMeta" onsubmit="return false">
+          <div class="full"><label>Title</label><input type="text" name="title"></div>
+          <div class="full"><label>Summary <span class="lh">shown under the title</span></label><textarea name="summary"></textarea></div>
+          <div><label>Year</label><input type="number" name="year"></div>
+          <div><label>Collaborator <span class="lh">optional</span></label><input type="text" name="collaborator"></div>
+          <div class="full"><label>Role <span class="lh">optional</span></label><input type="text" name="role"></div>
+          <div class="full"><label>Skills</label><div id="edSkills" class="chips-field"></div><p class="hint">Type a skill and press Enter (or comma). Suggestions come from your other projects, About and CV.</p></div>
+          <div class="full"><label>Accent colour</label><div id="edTheme" class="swatches"></div></div>
+        </form>
+        <details class="adv"><summary>Advanced fields</summary>
+          <form class="meta" id="edMetaAdv" onsubmit="return false">
+            <div><label>Order <span class="lh">1 = first on home</span></label><input type="number" name="order"></div>
+            <div><label>Type</label><select name="type"><option value="case">Case study</option><option value="gallery">Image gallery</option></select></div>
+            <div class="full"><label>Status <span class="lh">e.g. Work in progress</span></label><input type="text" name="status"></div>
+          </form>
+        </details>
+      </section>
+
+      <section class="card">
+        <h2>Snapshot <span class="muted">30-second summary under the hero — optional</span></h2>
+        <form class="meta" id="edSnap" onsubmit="return false">
+          <div class="full"><label>Problem</label><textarea name="problem"></textarea></div>
+          <div class="full"><label>Approach</label><textarea name="approach"></textarea></div>
+          <div class="full"><label>Outcome</label><textarea name="outcome"></textarea></div>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Cover image</h2>
+        <p class="hint">The main image at the top of the case — it also leads the hero gallery.</p>
+        <div id="edCover"></div>
+      </section>
+
+      <section class="card">
+        <h2>Gallery <span class="muted">carousel images shown after the cover</span></h2>
+        <div id="edGallery"></div>
+        <div class="row" style="margin-top:.8rem"><button class="small" id="galAdd">+ Add gallery images</button></div>
+      </section>
+
+      <section class="card" id="edSectionsCard">
+        <h2>Text sections</h2>
+        <p class="hint">Each section has a short <b>menu label</b> (shown in the page's “On this page” nav) and a longer <b>claim</b>. Add images right inside the section they belong to — no Markdown needed.</p>
+        <div id="edSections"></div>
+        <button class="small" id="addSection">+ Add section</button>
+      </section>
+
+      <details class="adv card">
+        <summary><b>Asset library</b> — every uploaded image</summary>
+        <p class="hint">Delete unused images (⌫) or copy an image's Markdown (📋) to paste into a section's raw mode.</p>
+        <div id="edLibrary" class="grid"></div>
+      </details>
+    </div>
+
+    <div id="rawEditor" style="display:none">
+      <section class="card">
+        <h2>Raw index.md <span class="muted">advanced</span></h2>
+        <p class="hint">Direct edit of the underlying file. Saving here overrides the visual editor.</p>
+        <textarea id="edRaw" class="body" style="min-height:26rem"></textarea>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- image picker -->
+<dialog id="pickDlg">
+  <div class="row" style="justify-content:space-between">
+    <h3>Choose image</h3>
+    <label class="btn small" style="cursor:pointer">Upload new <input type="file" id="pickUpload" accept="image/*" multiple style="display:none"></label>
+  </div>
+  <p class="hint" id="pickHint"></p>
+  <div class="pickgrid" id="pickGrid"></div>
+  <div class="row" style="justify-content:flex-end">
+    <button class="ghost small" id="pickCancel">Cancel</button>
+    <button class="primary small" id="pickUse">Use selected</button>
+  </div>
+</dialog>
+
+<!-- quick edit -->
+<dialog id="quickDlg">
+  <h3 id="qHeading">Quick edit</h3>
+  <form class="meta" onsubmit="return false" style="margin-top:.6rem">
+    <div class="full"><label>Title</label><input type="text" id="qTitle"></div>
+    <div><label>Year</label><input type="number" id="qYear"></div>
+    <div class="full"><label>Accent colour</label><div id="qThemeSwatch" class="swatches"></div></div>
+    <div class="full"><label>Cover image <span class="lh">pick from this project's images</span></label><div class="pickgrid" id="qCoverGrid"></div></div>
+  </form>
+  <div class="row" style="justify-content:flex-end; margin-top:.6rem">
+    <button class="ghost small" id="qCancel">Cancel</button>
+    <button class="primary small" id="qSave">Save</button>
+  </div>
+</dialog>
+
+<!-- accent colour manager -->
+<dialog id="accentsDlg">
+  <h3>Accent colours</h3>
+  <p class="hint">Presets (Teal, Blue, Sand, Charcoal) are always available. Add your own reusable colours — editing a colour also updates any project already using it.</p>
+  <div id="accentsList"></div>
+  <button class="small" id="accentAdd">+ Add colour</button>
+  <div class="row" style="justify-content:flex-end; margin-top:1rem">
+    <button class="ghost small" id="accentCancel">Cancel</button>
+    <button class="primary small" id="accentSave">Save</button>
+  </div>
+</dialog>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => [...document.querySelectorAll(s)];
+let BASE = '';
+let SKILLS = [];
+const THEMES = ['teal', 'blue', 'sand', 'dark'];
+
+const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const unesc = (s) => String(s ?? '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+const claimPara = (c) => '<p class="section-claim">' + esc(String(c).trim()) + '</p>';
+function extractClaim(body) {
+  const m = String(body || '').match(/^\s*<p class="section-claim">([\s\S]*?)<\/p>\s*/);
+  if (m) return { claim: unesc(m[1]).trim(), rest: body.slice(m[0].length) };
+  return { claim: '', rest: body || '' };
+}
+const humanize = (f) => f.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
+const toB64 = (f) => new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.readAsDataURL(f); });
+
+/* ================= markdown preview renderer ================= */
+function resolveSrc(src, slug) {
+  const m = src.match(/^\.\/assets\/(.+)$/);
+  return m ? '/assets/' + slug + '/' + encodeURIComponent(m[1]) : src;
+}
+function mdInline(s, slug) {
+  s = esc(s);
+  s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (m, a, src) => '<img alt="' + a + '" src="' + resolveSrc(src, slug) + '">');
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>');
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+  return s;
+}
+function mdToHtml(md, slug) {
+  const blocks = String(md || '').replace(/\r\n/g, '\n').split(/\n{2,}/);
+  let html = '';
+  for (const raw of blocks) {
+    const b = raw.trim();
+    if (!b) continue;
+    const lines = b.split('\n');
+    let m;
+    if ((m = b.match(/^(#{2,6})\s+(.*)$/))) { const l = Math.min(m[1].length, 6); html += '<h' + l + '>' + mdInline(m[2], slug) + '</h' + l + '>'; continue; }
+    if (lines.every((l) => /^\s*[-*]\s+/.test(l))) { html += '<ul>' + lines.map((l) => '<li>' + mdInline(l.replace(/^\s*[-*]\s+/, ''), slug) + '</li>').join('') + '</ul>'; continue; }
+    if (lines.every((l) => /^\s*\d+\.\s+/.test(l))) { html += '<ol>' + lines.map((l) => '<li>' + mdInline(l.replace(/^\s*\d+\.\s+/, ''), slug) + '</li>').join('') + '</ol>'; continue; }
+    if (lines.every((l) => /^\s*>\s?/.test(l))) { html += '<blockquote>' + mdInline(lines.map((l) => l.replace(/^\s*>\s?/, '')).join(' '), slug) + '</blockquote>'; continue; }
+    if (lines.every((l) => /^!\[[^\]]*\]\([^)]+\)$/.test(l.trim()))) { html += '<p class="imgpara">' + lines.map((l) => mdInline(l.trim(), slug)).join('') + '</p>'; continue; }
+    if (lines.length === 1 && /^\*[^*].*[^*]\*$/.test(b)) { html += '<p class="caption">' + mdInline(b, slug) + '</p>'; continue; }
+    html += '<p>' + mdInline(b, slug).replace(/\n/g, '<br>') + '</p>';
+  }
+  return html || '<p class="ph">Nothing to preview yet.</p>';
+}
+
+/* ================= skill chips ================= */
+function makeChips(host, initial) {
+  let values = [...(initial || [])];
+  host.innerHTML = '';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.setAttribute('list', 'skill-suggest');
+  input.placeholder = values.length ? 'Add another…' : 'Add a skill…';
+  function render() {
+    host.querySelectorAll('.chip').forEach((c) => c.remove());
+    values.forEach((v, i) => {
+      const c = document.createElement('span');
+      c.className = 'chip';
+      c.innerHTML = esc(v) + ' <button type="button" title="Remove" aria-label="Remove ' + esc(v) + '">×</button>';
+      c.querySelector('button').onclick = () => { values.splice(i, 1); render(); input.focus(); };
+      host.insertBefore(c, input);
+    });
+    input.placeholder = values.length ? 'Add another…' : 'Add a skill…';
+  }
+  function add(raw) {
+    const v = raw.trim().replace(/,+$/, '').trim();
+    if (v && !values.some((x) => x.toLowerCase() === v.toLowerCase())) values.push(v);
+    input.value = '';
+    render();
+  }
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(input.value); }
+    else if (e.key === 'Backspace' && !input.value && values.length) { values.pop(); render(); }
+  });
+  input.addEventListener('blur', () => { if (input.value.trim()) add(input.value); });
+  host.appendChild(input);
+  render();
+  return { get: () => [...values], set: (v) => { values = [...(v || [])]; render(); } };
+}
+
+/* ================= accent colours ================= */
+let PALETTE = []; // saved custom colours: [{name, color}]
+const PRESETS = [
+  { key: 'teal', color: '#7EB2AC', name: 'Teal' },
+  { key: 'blue', color: '#395F8E', name: 'Blue' },
+  { key: 'sand', color: '#FBE4A3', name: 'Sand' },
+  { key: 'dark', color: '#26292B', name: 'Charcoal' },
+];
+const isHex = (v) => /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(String(v || '').trim());
+function accentColorOf(theme) {
+  const p = PRESETS.find((x) => x.key === theme);
+  if (p) return p.color;
+  if (isHex(theme)) return theme;
+  const c = PALETTE.find((x) => x.color === theme);
+  return c ? c.color : '#7EB2AC';
+}
+async function loadPalette() { try { PALETTE = (await (await fetch('/api/accents')).json()).accents || []; } catch { PALETTE = []; } }
+async function savePalette(next) {
+  const out = await (await fetch('/api/accents', { method: 'PUT', body: JSON.stringify({ accents: next }) })).json();
+  if (out.ok) PALETTE = out.accents;
+  return PALETTE;
+}
+
+function makeSwatches(host, initial, onChange) {
+  let cur = initial || 'teal';
+  function render() {
+    host.innerHTML = '';
+    const add = (value, color, title) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'swatch' + (String(value) === String(cur) ? ' on' : '');
+      b.title = title; b.style.background = color;
+      b.onclick = () => { cur = value; onChange && onChange(cur); host.querySelectorAll('.swatch').forEach((x) => x.classList.remove('on')); b.classList.add('on'); };
+      host.appendChild(b);
+    };
+    PRESETS.forEach((p) => add(p.key, p.color, p.name));
+    PALETTE.forEach((c) => add(c.color, c.color, c.name));
+    const known = PRESETS.some((p) => p.key === cur) || PALETTE.some((c) => c.color === cur);
+    if (!known && isHex(cur)) add(cur, cur, 'Custom colour');
+    const plus = document.createElement('button');
+    plus.type = 'button'; plus.className = 'swatch-add'; plus.title = 'Add a custom colour'; plus.textContent = '+';
+    plus.onclick = () => openAccents((added) => { if (added) { cur = added; onChange && onChange(cur); } render(); });
+    host.appendChild(plus);
+    const mng = document.createElement('button');
+    mng.type = 'button'; mng.className = 'swatch-manage'; mng.textContent = 'Manage';
+    mng.onclick = () => openAccents(() => render());
+    host.appendChild(mng);
+  }
+  render();
+  return { get: () => cur, set: (v) => { cur = v || 'teal'; render(); }, refresh: render };
+}
+
+/* accent manager dialog */
+function openAccents(done) {
+  const dlg = $('#accentsDlg'), list = $('#accentsList');
+  const rowEl = (color, name, orig) => {
+    const r = document.createElement('div'); r.className = 'accent-row';
+    r.innerHTML =
+      '<input type="color" value="' + (isHex(color) ? color : '#7EB2AC') + '" data-orig="' + (orig || '') + '">' +
+      '<input type="text" placeholder="Name (e.g. Sunset)" value="' + esc(name || '') + '">' +
+      '<button class="icon" title="Delete colour">✕</button>';
+    r.querySelector('button').onclick = () => r.remove();
+    return r;
+  };
+  list.innerHTML = '';
+  PALETTE.forEach((c) => list.appendChild(rowEl(c.color, c.name, c.color)));
+  if (!PALETTE.length) list.innerHTML = '<p class="hint">No custom colours yet. Add one below.</p>';
+  $('#accentAdd').onclick = () => { if (!PALETTE.length && list.querySelector('.hint')) list.innerHTML = ''; list.appendChild(rowEl('#7EB2AC', '', '')); };
+  $('#accentCancel').onclick = () => { dlg.close(); done && done(null); };
+  $('#accentSave').onclick = async () => {
+    const rows = [...list.querySelectorAll('.accent-row')];
+    const parsed = rows.map((r) => ({
+      color: r.querySelector('input[type=color]').value,
+      name: r.querySelector('input[type=text]').value.trim(),
+      orig: r.querySelector('input[type=color]').dataset.orig,
+    })).filter((x) => x.name);
+    const changes = parsed.filter((x) => x.orig && x.orig !== x.color);
+    const added = parsed.find((x) => !x.orig);
+    await savePalette(parsed.map(({ name, color }) => ({ name, color })));
+    if (changes.length) {
+      try {
+        const pr = (await (await fetch('/api/projects')).json()).projects;
+        for (const ch of changes) for (const p of pr) if (p.theme === ch.orig) await fetch('/api/project/' + p.slug + '/fields', { method: 'PATCH', body: JSON.stringify({ theme: ch.color }) });
+      } catch {}
+      refresh();
+    }
+    dlg.close();
+    done && done(added ? added.color : null);
+  };
+  dlg.showModal();
+}
+
+/* ================= list ================= */
+let LIST = [];
+async function refresh() {
+  const r = await (await fetch('/api/projects')).json();
+  BASE = r.base;
+  LIST = r.projects;
+  renderList();
+}
+function renderList() {
+  const tb = $('#list tbody');
+  tb.innerHTML = '';
+  if (!LIST.length) {
+    tb.innerHTML = '<tr><td colspan="5"><div class="empty"><strong>No projects yet</strong>Drag a folder into the box below, or start a blank project.</div></td></tr>';
+    return;
+  }
+  LIST.forEach((p) => {
+    const tr = document.createElement('tr');
+    tr.draggable = true;
+    tr.dataset.slug = p.slug;
+    tr.innerHTML =
+      '<td class="drag" title="Drag to reorder">⠿ <span class="ord">' + p.order + '</span></td>' +
+      '<td><img class="mini" src="/assets/' + p.slug + '/' + encodeURIComponent(p.cover) + '" onerror="this.style.display=\'none\'"><span class="dot custom" style="background:' + accentColorOf(p.theme) + '"></span>' + esc(p.title) + (p.type === 'gallery' ? ' <span class="muted">(gallery)</span>' : '') + '</td>' +
+      '<td>' + p.year + '</td><td>' + p.assets + '</td>' +
+      '<td style="white-space:nowrap; text-align:right">' +
+        '<a class="btn small" target="_blank" href="http://localhost:4321' + BASE + '/portfolio/' + p.slug + '">Preview</a> ' +
+        '<button class="small" data-quick="' + p.slug + '">Quick edit</button> ' +
+        '<button class="small" data-edit="' + p.slug + '">Edit</button> ' +
+        '<button class="small danger" data-del="' + p.slug + '">Delete</button>' +
+      '</td>';
+    tb.appendChild(tr);
+  });
+  wireDrag();
+}
+function wireDrag() {
+  const tb = $('#list tbody');
+  let dragEl = null;
+  tb.querySelectorAll('tr').forEach((tr) => {
+    tr.addEventListener('dragstart', (e) => { dragEl = tr; tr.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
+    tr.addEventListener('dragend', () => { tr.classList.remove('dragging'); tb.querySelectorAll('tr').forEach((x) => x.classList.remove('dragover-line')); });
+    tr.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      if (!dragEl || tr === dragEl) return;
+      const rect = tr.getBoundingClientRect();
+      const after = (e.clientY - rect.top) / rect.height > 0.5;
+      tb.insertBefore(dragEl, after ? tr.nextSibling : tr);
+    });
+    tr.addEventListener('drop', (e) => { e.preventDefault(); commitOrder(); });
+  });
+}
+async function commitOrder() {
+  const slugs = [...$('#list tbody').querySelectorAll('tr')].map((r) => r.dataset.slug);
+  LIST = slugs.map((s) => LIST.find((p) => p.slug === s));
+  const patches = [];
+  LIST.forEach((p, i) => { const ord = i + 1; if (p.order !== ord) { p.order = ord; patches.push(fetch('/api/project/' + p.slug + '/fields', { method: 'PATCH', body: JSON.stringify({ order: ord }) })); } });
+  await Promise.all(patches);
+  renderList();
+}
+document.addEventListener('click', async (e) => {
+  const ed = e.target.dataset?.edit, del = e.target.dataset?.del, q = e.target.dataset?.quick;
+  if (ed) openEditor(ed);
+  if (q) openQuick(q);
+  if (del && confirm('Move project "' + del + '" to ~/.portfolio-cms-trash?')) {
+    await fetch('/api/project/' + del, { method: 'DELETE' });
+    refresh();
+    alert('Deleted. If the site preview shows an "ImageNotFound" error afterwards, restart the dev server (Ctrl+C, then npm run dev) — Astro caches deleted projects until restarted.');
+  }
+});
+
+/* ---- quick edit ---- */
+async function openQuick(slug) {
+  const d = await (await fetch('/api/project/' + slug + '/parsed')).json();
+  if (!d.meta) { alert('This project can’t be quick-edited (parse issue) — open the full editor.'); return; }
+  const m = d.meta, dlg = $('#quickDlg');
+  $('#qHeading').textContent = 'Quick edit · ' + slug;
+  $('#qTitle').value = m.title || '';
+  $('#qYear').value = m.year || '';
+  let qCover = m.cover, qTheme = m.theme || 'teal';
+  const sw = makeSwatches($('#qThemeSwatch'), qTheme, (t) => { qTheme = t; });
+  const grid = $('#qCoverGrid');
+  const renderCover = () => {
+    grid.innerHTML = '';
+    if (!d.assets.length) { grid.innerHTML = '<p class="hint">No images in this project yet — add some in the full editor.</p>'; return; }
+    d.assets.forEach((n) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'pickthumb' + (n === qCover ? ' sel' : '');
+      b.innerHTML = '<img src="/assets/' + slug + '/' + encodeURIComponent(n) + '"><span class="name">' + esc(n) + '</span>';
+      b.onclick = () => { qCover = n; renderCover(); };
+      grid.appendChild(b);
+    });
+  };
+  renderCover();
+  $('#qCancel').onclick = () => dlg.close();
+  $('#qSave').onclick = async () => {
+    await fetch('/api/project/' + slug + '/fields', { method: 'PATCH', body: JSON.stringify({ title: $('#qTitle').value.trim(), year: $('#qYear').value, theme: qTheme, cover: qCover }) });
+    dlg.close();
+    refresh();
+  };
+  dlg.showModal();
+}
+
+/* ================= section model helpers ================= */
+const IMG_LINE = /^!\[([^\]]*)\]\(([^)]+)\)$/;
+function splitHeading(h) {
+  const idx = h.indexOf('—');
+  if (idx > -1) return { label: h.slice(0, idx).trim(), claim: h.slice(idx + 1).trim() };
+  return { label: h.trim(), claim: '' };
+}
+function buildHeading(label, claim) {
+  const l = (label || '').trim(), c = (claim || '').trim();
+  return c ? l + ' — ' + c : l;
+}
+/** Turn a server {heading, body} section into the editor model (claim extracted from body). */
+function mapSection(s) {
+  const { claim, rest } = extractClaim(s.body);
+  let label = s.heading, cl = claim;
+  if (!cl && s.heading.includes('—')) { const sp = splitHeading(s.heading); label = sp.label; cl = sp.claim; } // legacy
+  const sp = splitBody(rest);
+  return { intro: s.heading === '', label, claim: cl, text: sp.text, images: sp.images, rawBody: rest, raw: !sp.clean, tab: 'write' };
+}
+/** Split a section body into leading prose + trailing image cards. */
+function splitBody(body) {
+  const blocks = String(body || '').replace(/\r\n/g, '\n').split(/\n{2,}/);
+  const images = [], textBlocks = [];
+  let clean = true, seenImage = false, i = 0;
+  while (i < blocks.length) {
+    const b = blocks[i].trim();
+    const lines = b.split('\n');
+    const isImgBlock = b && lines.length >= 1 && lines.length <= 2 && lines.every((l) => IMG_LINE.test(l.trim()));
+    if (isImgBlock) {
+      seenImage = true;
+      const grp = lines.map((l) => l.trim().match(IMG_LINE));
+      let caption = '';
+      if (i + 1 < blocks.length) {
+        const nb = blocks[i + 1].trim();
+        if (!nb.includes('\n') && /^\*[^*].*[^*]\*$/.test(nb)) { caption = nb.replace(/^\*|\*$/g, ''); i++; }
+      }
+      grp.forEach((mm, gi) => {
+        const fileM = mm[2].match(/^\.\/assets\/(.+)$/);
+        if (!fileM) clean = false;
+        images.push({ file: fileM ? fileM[1] : mm[2], alt: mm[1], caption: gi === 0 ? caption : '', pair: gi > 0 });
+      });
+    } else if (b) {
+      if (seenImage) clean = false;                 // text after images → not cleanly separable
+      if (/!\[[^\]]*\]\([^)]*\)/.test(b)) clean = false; // inline image inside prose
+      textBlocks.push(b);
+    }
+    i++;
+  }
+  return { text: textBlocks.join('\n\n'), images, clean };
+}
+function buildBody(sec) {
+  const parts = [];
+  if (!sec.intro && sec.claim && sec.claim.trim()) parts.push(claimPara(sec.claim));
+  if (sec.raw) { const rb = (sec.rawBody || '').trim(); if (rb) parts.push(rb); return parts.join('\n\n'); }
+  const t = (sec.text || '').trim();
+  if (t) parts.push(t);
+  const imgs = sec.images || [];
+  let g = 0;
+  while (g < imgs.length) {
+    const grp = [imgs[g]];
+    if (imgs[g + 1] && imgs[g + 1].pair) grp.push(imgs[g + 1]);
+    parts.push(grp.map((x) => '![' + (x.alt || '') + '](./assets/' + x.file + ')').join('\n'));
+    const cap = grp[0].caption;
+    if (cap && cap.trim()) parts.push('*' + cap.trim() + '*');
+    g += grp.length;
+  }
+  return parts.join('\n\n');
+}
+
+/* ================= editor ================= */
+let ED = null; // { slug, meta, sections, assets, rawMode, rawOnly, raw, skills, swatch }
+
+async function openEditor(slug) {
+  const r = await fetch('/api/project/' + slug + '/parsed');
+  const data = await r.json();
+  if (!r.ok) {
+    const rr = await (await fetch('/api/project/' + slug)).json();
+    ED = { slug, rawMode: true, rawOnly: true, raw: rr.raw, assets: rr.assets };
+  } else {
+    ED = { slug, rawMode: false, rawOnly: false, meta: data.meta, sections: data.sections.map(mapSection), assets: data.assets };
+  }
+  $('#edTitle').textContent = 'Edit · ' + slug;
+  $('#edPreview').href = 'http://localhost:4321' + BASE + '/portfolio/' + slug;
+  $('#home').style.display = 'none';
+  $('#editorView').style.display = 'block';
+  $('#edMsg').className = 'msg';
+  renderEditor();
+  window.scrollTo(0, 0);
+}
+
+function renderEditor() {
+  $('#guiEditor').style.display = ED.rawMode ? 'none' : 'block';
+  $('#rawEditor').style.display = ED.rawMode ? 'block' : 'none';
+  $('#rawToggle').textContent = ED.rawMode ? 'Visual editor' : 'Edit raw file';
+  if (ED.rawMode) { if (ED.raw != null) $('#edRaw').value = ED.raw; return; }
+  const m = ED.meta, f = $('#edMeta'), fa = $('#edMetaAdv');
+  f.title.value = m.title || '';
+  f.summary.value = m.summary || '';
+  f.year.value = m.year || '';
+  f.collaborator.value = m.collaborator || '';
+  f.role.value = m.role || '';
+  fa.order.value = m.order ?? 99;
+  fa.type.value = m.type || 'case';
+  fa.status.value = m.status || '';
+  ED.skills = makeChips($('#edSkills'), m.tags || []);
+  ED.swatch = makeSwatches($('#edTheme'), m.theme || 'teal', (t) => { ED.meta.theme = t; });
+  const sn = $('#edSnap');
+  sn.problem.value = m.snapshot?.problem || '';
+  sn.approach.value = m.snapshot?.approach || '';
+  sn.outcome.value = m.snapshot?.outcome || '';
+  renderCover();
+  renderGallery();
+  renderSections();
+  renderLibrary();
+}
+
+/* ---- cover ---- */
+function renderCover() {
+  const host = $('#edCover');
+  const c = ED.meta.cover;
+  if (!c) {
+    host.innerHTML = '<div class="empty"><strong>No cover image yet</strong>Pick the main image for this case.</div><div class="row" style="margin-top:.7rem"><button class="small" id="coverAdd">+ Choose cover</button></div>';
+    $('#coverAdd').onclick = async () => { const [n] = await pickImages({ multiple: false }); if (n) { ED.meta.cover = n; renderCover(); } };
+    return;
+  }
+  host.innerHTML =
+    '<div class="coverbox">' +
+      '<img src="/assets/' + ED.slug + '/' + encodeURIComponent(c) + '" alt="">' +
+      '<div class="cover-side">' +
+        '<label>Cover alt text <span class="lh">describe the image for accessibility</span></label>' +
+        '<input type="text" id="edCoverAlt" value="' + esc(ED.meta.coverAlt || '') + '">' +
+        '<div class="row" style="margin-top:.7rem">' +
+          '<button class="small" id="coverReplace">Replace</button>' +
+          '<button class="small ghost" id="coverRemove">Remove</button>' +
+        '</div>' +
+        '<p class="hint">' + esc(c) + '</p>' +
+      '</div>' +
+    '</div>';
+  $('#edCoverAlt').oninput = (e) => { ED.meta.coverAlt = e.target.value; };
+  $('#coverReplace').onclick = async () => { const [n] = await pickImages({ multiple: false }); if (n) { ED.meta.cover = n; renderCover(); } };
+  $('#coverRemove').onclick = () => { ED.meta.cover = ''; renderCover(); };
+}
+
+/* ---- gallery ---- */
+function renderGallery() {
+  const host = $('#edGallery');
+  const g = ED.meta.gallery || (ED.meta.gallery = []);
+  if (!g.length) {
+    host.innerHTML = '<div class="empty"><strong>No gallery images</strong>Optional. Add images to build the hero carousel.</div>';
+    return;
+  }
+  host.innerHTML = '<div class="galgrid"></div>';
+  const grid = host.querySelector('.galgrid');
+  g.forEach((item, i) => {
+    const d = document.createElement('div');
+    d.className = 'galcard';
+    d.innerHTML =
+      '<img src="/assets/' + ED.slug + '/' + encodeURIComponent(item.file) + '" alt="">' +
+      '<div class="body">' +
+        '<input type="text" placeholder="Alt text" value="' + esc(item.alt || '') + '" data-alt="' + i + '">' +
+        '<div class="ctl">' +
+          '<span>' +
+            '<button class="icon" data-up="' + i + '" title="Move left">←</button> ' +
+            '<button class="icon" data-down="' + i + '" title="Move right">→</button>' +
+          '</span>' +
+          '<button class="icon" data-rm="' + i + '" title="Remove from gallery">✕</button>' +
+        '</div>' +
+      '</div>';
+    grid.appendChild(d);
+  });
+  grid.oninput = (e) => { const a = e.target.dataset.alt; if (a != null) g[+a].alt = e.target.value; };
+  grid.onclick = (e) => {
+    const up = e.target.dataset.up, dn = e.target.dataset.down, rm = e.target.dataset.rm;
+    if (up != null && +up > 0) { [g[+up - 1], g[+up]] = [g[+up], g[+up - 1]]; renderGallery(); }
+    if (dn != null && +dn < g.length - 1) { [g[+dn + 1], g[+dn]] = [g[+dn], g[+dn + 1]]; renderGallery(); }
+    if (rm != null) { g.splice(+rm, 1); renderGallery(); }
+  };
+}
+$('#galAdd').addEventListener('click', async () => {
+  const picks = await pickImages({ multiple: true });
+  const g = ED.meta.gallery || (ED.meta.gallery = []);
+  for (const n of picks) if (!g.some((x) => x.file === n)) g.push({ file: n, alt: '' });
+  renderGallery();
+});
+
+/* ---- sections ---- */
+function renderSections() {
+  const host = $('#edSections');
+  host.innerHTML = '';
+  if (!ED.sections.length) {
+    host.innerHTML = '<div class="empty"><strong>No sections yet</strong>Add your first text section below.</div>';
+    return;
+  }
+  ED.sections.forEach((sec, i) => host.appendChild(buildSectionEl(sec, i)));
+}
+
+function buildSectionEl(sec, i) {
+  const d = document.createElement('div');
+  d.className = 'sec';
+  // header
+  const head = document.createElement('div');
+  head.className = 'sec-head';
+  if (sec.intro) {
+    head.innerHTML =
+      '<div style="grid-column:1/3"><span class="sec-intro-badge">Intro</span> <span class="muted">Opening paragraph — no heading</span></div>' +
+      '<div class="ctl"></div>';
+  } else {
+    head.innerHTML =
+      '<div><label>Menu label <span class="lh">short</span></label><input type="text" class="s-label" placeholder="e.g. Research"></div>' +
+      '<div><label>Section claim <span class="lh">the headline</span></label><input type="text" class="s-claim" placeholder="e.g. what the kitchen taught us"></div>' +
+      '<div class="ctl"></div>';
+    head.querySelector('.s-label').value = sec.label || '';
+    head.querySelector('.s-claim').value = sec.claim || '';
+    head.querySelector('.s-label').oninput = (e) => { sec.label = e.target.value; };
+    head.querySelector('.s-claim').oninput = (e) => { sec.claim = e.target.value; };
+  }
+  const ctl = head.querySelector('.ctl');
+  ctl.innerHTML =
+    '<button class="icon s-up" title="Move up">↑</button>' +
+    '<button class="icon s-down" title="Move down">↓</button>' +
+    '<button class="icon s-raw" title="Toggle raw Markdown for this section">&lt;/&gt;</button>' +
+    '<button class="icon s-rm" title="Delete section">✕</button>';
+  ctl.querySelector('.s-up').onclick = () => { if (i > 0) { [ED.sections[i - 1], ED.sections[i]] = [ED.sections[i], ED.sections[i - 1]]; renderSections(); } };
+  ctl.querySelector('.s-down').onclick = () => { if (i < ED.sections.length - 1) { [ED.sections[i + 1], ED.sections[i]] = [ED.sections[i], ED.sections[i + 1]]; renderSections(); } };
+  ctl.querySelector('.s-rm').onclick = () => { if (confirm('Delete this section?')) { ED.sections.splice(i, 1); renderSections(); } };
+  ctl.querySelector('.s-raw').onclick = () => {
+    if (!sec.raw) { sec.rawBody = buildBody(sec); sec.raw = true; }
+    else { const sp = splitBody(sec.rawBody); sec.text = sp.text; sec.images = sp.images; sec.raw = false; }
+    renderSections();
+  };
+  if (sec.raw) ctl.querySelector('.s-raw').style.background = 'var(--ink)', ctl.querySelector('.s-raw').style.color = 'var(--paper)';
+  d.appendChild(head);
+
+  if (sec.raw) {
+    const ta = document.createElement('textarea');
+    ta.className = 'body';
+    ta.style.width = '100%';
+    ta.value = sec.rawBody || '';
+    ta.oninput = (e) => { sec.rawBody = e.target.value; };
+    d.appendChild(ta);
+    const note = document.createElement('p');
+    note.className = 'hint';
+    note.textContent = 'Raw Markdown for this section (images, side-by-side pairs, captions). Toggle </> off to return to the visual editor.';
+    d.appendChild(note);
+    return d;
+  }
+
+  // tabs
+  const tabs = document.createElement('div');
+  tabs.className = 'tabs';
+  tabs.innerHTML = '<button class="tab t-write" data-t="write">Write</button><button class="tab t-prev" data-t="preview">Preview</button>';
+  d.appendChild(tabs);
+
+  // write pane
+  const writePane = document.createElement('div');
+  const toolbar = document.createElement('div');
+  toolbar.className = 'toolbar';
+  const tools = [
+    ['B', 'bold', 'wrap', '**', '**', 'bold text'],
+    ['I', 'italic', 'wrap', '*', '*', 'italic text'],
+    ['H', 'subheading', 'line', '### ', '', 'Subheading'],
+    ['“”', 'quote', 'line', '> ', '', 'quote'],
+    ['• List', 'bullet list', 'line', '- ', '', 'list item'],
+    ['1. List', 'numbered list', 'line', '1. ', '', 'list item'],
+    ['Link', 'link', 'wrap', '[', '](https://)', 'link text'],
+  ];
+  const ta = document.createElement('textarea');
+  ta.className = 'md';
+  ta.value = sec.text || '';
+  ta.oninput = (e) => { sec.text = e.target.value; };
+  toolbar.innerHTML = tools.map((t, k) => '<button type="button" title="' + t[1] + '" data-k="' + k + '">' + t[0] + '</button>').join('');
+  toolbar.onclick = (e) => {
+    const k = e.target.dataset.k; if (k == null) return;
+    const [, , mode, a, b, ph] = tools[+k];
+    applyTool(ta, mode, a, b, ph);
+    sec.text = ta.value;
+  };
+  writePane.appendChild(toolbar);
+  writePane.appendChild(ta);
+  d.appendChild(writePane);
+
+  // preview pane
+  const prev = document.createElement('div');
+  prev.className = 'preview';
+  prev.style.display = 'none';
+  d.appendChild(prev);
+
+  const setTab = (which) => {
+    sec.tab = which;
+    tabs.querySelector('.t-write').classList.toggle('on', which === 'write');
+    tabs.querySelector('.t-prev').classList.toggle('on', which === 'preview');
+    writePane.style.display = which === 'write' ? 'block' : 'none';
+    prev.style.display = which === 'preview' ? 'block' : 'none';
+    if (which === 'preview') prev.innerHTML = sectionPreviewHtml(sec);
+  };
+  tabs.onclick = (e) => { const w = e.target.dataset.t; if (w) setTab(w); };
+  setTab(sec.tab || 'write');
+
+  // section images
+  d.appendChild(buildSectionImages(sec));
+  return d;
+}
+
+function sectionPreviewHtml(sec) {
+  let html = '';
+  if (!sec.intro && sec.label) html += '<h2>' + esc(sec.label) + '</h2>';
+  if (!sec.intro && sec.claim && sec.claim.trim()) html += '<p class="section-claim">' + esc(sec.claim) + '</p>';
+  html += mdToHtml(sec.text, ED.slug);
+  const imgs = sec.images || [];
+  let g = 0;
+  while (g < imgs.length) {
+    const grp = [imgs[g]];
+    if (imgs[g + 1] && imgs[g + 1].pair) grp.push(imgs[g + 1]);
+    html += '<p class="imgpara">' + grp.map((x) => '<img src="/assets/' + ED.slug + '/' + encodeURIComponent(x.file) + '" alt="' + esc(x.alt) + '">').join('') + '</p>';
+    if (grp[0].caption) html += '<p class="caption">' + esc(grp[0].caption) + '</p>';
+    g += grp.length;
+  }
+  return html;
+}
+
+function buildSectionImages(sec) {
+  const wrap = document.createElement('div');
+  wrap.className = 'sec-imgs';
+  const imgs = sec.images || (sec.images = []);
+  let inner = '<div class="lbl">Images in this section</div>';
+  if (!imgs.length) inner += '<p class="hint" style="margin:0 0 .5rem">None yet — add images that belong to this part of the story.</p>';
+  wrap.innerHTML = inner;
+  imgs.forEach((im, i) => {
+    const c = document.createElement('div');
+    c.className = 'imgcard';
+    c.innerHTML =
+      '<img src="/assets/' + ED.slug + '/' + encodeURIComponent(im.file) + '" alt="">' +
+      '<div class="fields">' +
+        '<input type="text" class="i-alt" placeholder="Alt text (accessibility)" value="' + esc(im.alt || '') + '">' +
+        '<input type="text" class="i-cap" placeholder="Caption (optional)" value="' + esc(im.caption || '') + '">' +
+        (i > 0 ? '<label class="sbs"><input type="checkbox" class="i-sbs"' + (im.pair ? ' checked' : '') + '> Side-by-side with image above</label>' : '') +
+      '</div>' +
+      '<div class="ctl">' +
+        '<button class="icon i-up" title="Move up">↑</button>' +
+        '<button class="icon i-down" title="Move down">↓</button>' +
+        '<button class="icon i-rm" title="Remove">✕</button>' +
+      '</div>';
+    c.querySelector('.i-alt').oninput = (e) => { im.alt = e.target.value; };
+    c.querySelector('.i-cap').oninput = (e) => { im.caption = e.target.value; };
+    const sbs = c.querySelector('.i-sbs');
+    if (sbs) sbs.onchange = (e) => { im.pair = e.target.checked; };
+    c.querySelector('.i-up').onclick = () => { if (i > 0) { [imgs[i - 1], imgs[i]] = [imgs[i], imgs[i - 1]]; if (imgs[0]) imgs[0].pair = false; renderSections(); } };
+    c.querySelector('.i-down').onclick = () => { if (i < imgs.length - 1) { [imgs[i + 1], imgs[i]] = [imgs[i], imgs[i + 1]]; if (imgs[0]) imgs[0].pair = false; renderSections(); } };
+    c.querySelector('.i-rm').onclick = () => { imgs.splice(i, 1); if (imgs[0]) imgs[0].pair = false; renderSections(); };
+    wrap.appendChild(c);
+  });
+  const add = document.createElement('button');
+  add.className = 'small';
+  add.textContent = '+ Add image';
+  add.onclick = async () => {
+    const picks = await pickImages({ multiple: true });
+    for (const n of picks) imgs.push({ file: n, alt: '', caption: '', pair: false });
+    renderSections();
+  };
+  wrap.appendChild(add);
+  return wrap;
+}
+
+function applyTool(ta, mode, a, b, ph) {
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  const val = ta.value;
+  if (mode === 'wrap') {
+    const sel = val.slice(s, e) || ph;
+    ta.value = val.slice(0, s) + a + sel + b + val.slice(e);
+    ta.focus();
+    ta.selectionStart = s + a.length;
+    ta.selectionEnd = s + a.length + sel.length;
+  } else { // line prefix
+    let ls = val.lastIndexOf('\n', s - 1) + 1;
+    const seg = val.slice(ls, e);
+    const lines = seg.split('\n').map((l) => (l ? a + l : a + ph));
+    const repl = lines.join('\n');
+    ta.value = val.slice(0, ls) + repl + val.slice(e);
+    ta.focus();
+    ta.selectionStart = ls;
+    ta.selectionEnd = ls + repl.length;
+  }
+}
+
+$('#addSection').addEventListener('click', () => {
+  ED.sections.push({ intro: false, label: 'New section', claim: '', text: '', images: [], rawBody: '', raw: false, tab: 'write' });
+  renderSections();
+  window.scrollTo(0, document.body.scrollHeight);
+});
+
+/* ---- asset library (advanced) ---- */
+function renderLibrary() {
+  const g = $('#edLibrary');
+  g.innerHTML = '';
+  if (!ED.assets.length) { g.innerHTML = '<p class="hint">No images uploaded yet.</p>'; return; }
+  for (const name of ED.assets) {
+    const b = document.createElement('div');
+    b.className = 'thumb';
+    b.innerHTML =
+      '<img src="/assets/' + ED.slug + '/' + encodeURIComponent(name) + '" alt="">' +
+      '<span class="name">' + esc(name) + '</span>' +
+      '<button class="icon" title="Copy Markdown" style="position:absolute;top:.25rem;right:2rem" data-copy="' + name + '">📋</button>' +
+      '<button class="icon" title="Delete unused asset" style="position:absolute;top:.25rem;right:.25rem" data-delasset="' + name + '">⌫</button>';
+    g.appendChild(b);
+  }
+}
+document.addEventListener('click', async (e) => {
+  const cp = e.target.dataset?.copy, del = e.target.dataset?.delasset;
+  if (cp) {
+    const md = '![' + humanize(cp) + '](./assets/' + cp + ')\n\n*Caption.*';
+    try { await navigator.clipboard.writeText(md); e.target.textContent = '✓'; setTimeout(() => (e.target.textContent = '📋'), 900); } catch {}
+  }
+  if (del && ED) {
+    const r = await fetch('/api/project/' + ED.slug + '/asset/' + encodeURIComponent(del), { method: 'DELETE' });
+    const out = await r.json();
+    if (out.ok) { ED.assets = out.assets; renderLibrary(); } else alert(out.error);
+  }
+});
+
+/* ---- image picker dialog ---- */
+function pickImages(opts) {
+  const multiple = !!opts.multiple;
+  return new Promise((resolve) => {
+    const dlg = $('#pickDlg'), grid = $('#pickGrid');
+    const sel = new Set();
+    let done = false;
+    const finish = (val) => { if (done) return; done = true; cleanup(); try { dlg.close(); } catch {} resolve(val); };
+    function populate() {
+      grid.innerHTML = '';
+      if (!ED.assets.length) grid.innerHTML = '<p class="hint">No images yet — upload some above.</p>';
+      ED.assets.forEach((name) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'pickthumb' + (sel.has(name) ? ' sel' : '');
+        b.innerHTML = '<img src="/assets/' + ED.slug + '/' + encodeURIComponent(name) + '"><span class="name">' + esc(name) + '</span>';
+        b.onclick = () => {
+          if (multiple) { if (sel.has(name)) sel.delete(name); else sel.add(name); b.classList.toggle('sel'); }
+          else finish([name]);
+        };
+        grid.appendChild(b);
+      });
+    }
+    $('#pickHint').textContent = multiple ? 'Click to select one or more, then Use selected. Or upload new images.' : 'Click an image to use it, or upload a new one.';
+    $('#pickUse').style.display = multiple ? '' : 'none';
+    $('#pickUse').onclick = () => finish([...sel]);
+    $('#pickCancel').onclick = () => finish([]);
+    $('#pickUpload').onchange = async (e) => {
+      const files = [];
+      for (const f of e.target.files) files.push({ name: f.name, dataBase64: await toB64(f) });
+      const out = await (await fetch('/api/project/' + ED.slug + '/assets', { method: 'POST', body: JSON.stringify({ files }) })).json();
+      e.target.value = '';
+      if (out.ok) {
+        ED.assets = out.assets; renderLibrary();
+        if (!multiple && out.added.length) return finish([out.added[0]]);
+        out.added.forEach((n) => sel.add(n));
+        populate();
+      }
+    };
+    function cleanup() { $('#pickUse').onclick = null; $('#pickCancel').onclick = null; $('#pickUpload').onchange = null; dlg.removeEventListener('close', onClose); }
+    const onClose = () => finish(multiple ? [...sel] : []);
+    dlg.addEventListener('close', onClose);
+    populate();
+    dlg.showModal();
+  });
+}
+
+/* ---- raw file mode ---- */
+$('#rawToggle').addEventListener('click', async () => {
+  if (ED.rawOnly) return;
+  if (!ED.rawMode) {
+    const rr = await (await fetch('/api/project/' + ED.slug)).json();
+    ED.raw = rr.raw; ED.rawMode = true;
+  } else {
+    if (!confirm('Switch to the visual editor? Unsaved raw edits are discarded.')) return;
+    const data = await (await fetch('/api/project/' + ED.slug + '/parsed')).json();
+    Object.assign(ED, { meta: data.meta, sections: data.sections.map(mapSection), assets: data.assets, rawMode: false });
+  }
+  renderEditor();
+});
+
+/* ---- save ---- */
+$('#saveBtn').addEventListener('click', async () => {
+  const msg = $('#edMsg');
+  let resp;
+  if (ED.rawMode) {
+    resp = await fetch('/api/project/' + ED.slug, { method: 'PUT', body: JSON.stringify({ raw: $('#edRaw').value }) });
+  } else {
+    const f = $('#edMeta'), fa = $('#edMetaAdv'), sn = $('#edSnap');
+    const meta = {
+      ...ED.meta,
+      title: f.title.value.trim(),
+      summary: f.summary.value.trim(),
+      year: f.year.value,
+      collaborator: f.collaborator.value.trim(),
+      role: f.role.value.trim(),
+      tags: ED.skills.get(),
+      theme: ED.swatch.get(),
+      order: fa.order.value,
+      type: fa.type.value,
+      status: fa.status.value.trim(),
+      coverAlt: ED.meta.coverAlt || '',
+      cover: ED.meta.cover,
+      gallery: ED.meta.gallery || [],
+      snapshot: { problem: sn.problem.value.trim(), approach: sn.approach.value.trim(), outcome: sn.outcome.value.trim() },
+    };
+    if (!meta.cover) { msg.className = 'msg err'; msg.textContent = 'Pick a cover image.'; window.scrollTo(0, 0); return; }
+    const sections = ED.sections
+      .map((sec) => ({ heading: sec.intro ? '' : (sec.label || '').trim(), body: buildBody(sec) }))
+      .filter((s) => s.heading || s.body.trim());
+    resp = await fetch('/api/project/' + ED.slug + '/parsed', { method: 'PUT', body: JSON.stringify({ meta, sections }) });
+  }
+  const out = await resp.json();
+  msg.className = out.ok ? 'msg ok' : 'msg err';
+  msg.innerHTML = out.ok ? '✓ Saved. <a target="_blank" href="' + $('#edPreview').href + '">Open preview →</a>' : (out.error || 'failed');
+  window.scrollTo(0, 0);
+  if (out.ok) refresh();
+});
+
+$('#backBtn').addEventListener('click', () => {
+  $('#editorView').style.display = 'none';
+  $('#home').style.display = 'block';
+  ED = null;
+});
+
+/* ================= create flow ================= */
+let files = [];
+let coverIdx = -1;
+let galleryOrder = [];
+let cSkills = null, cSwatch = null;
+const IMG = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif'];
+const VID = ['mp4', 'webm', 'mov'];
+const TXT = ['md', 'txt'];
+const extOf = (n) => n.split('.').pop().toLowerCase();
+const safe = (n) => n.toLowerCase().replace(/\.[^.]+$/, '').normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') + '.' + extOf(n);
+
+async function walkEntry(entry, out) {
+  if (entry.isFile) await new Promise((res) => entry.file((f) => { out.push(f); res(); }));
+  else if (entry.isDirectory) {
+    const reader = entry.createReader();
+    let batch;
+    do {
+      batch = await new Promise((res) => reader.readEntries(res));
+      for (const en of batch) await walkEntry(en, out);
+    } while (batch.length);
+  }
+}
+const drop = $('#drop');
+drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+drop.addEventListener('drop', async (e) => {
+  e.preventDefault(); drop.classList.remove('over');
+  const out = [];
+  for (const item of e.dataTransfer.items) { const entry = item.webkitGetAsEntry?.(); if (entry) await walkEntry(entry, out); }
+  intake(out, e.dataTransfer.items[0]?.webkitGetAsEntry?.()?.name || '');
+});
+$('#picker').addEventListener('change', (e) => {
+  const list = [...e.target.files];
+  intake(list, list[0]?.webkitRelativePath?.split('/')[0] || '');
+});
+
+$('#blankBtn').addEventListener('click', () => startBlank());
+$('#builderAdd').addEventListener('change', async (e) => {
+  for (const f of e.target.files) files.push({ name: f.name, safe: safe(f.name), kind: 'img', dataBase64: await toB64(f), url: URL.createObjectURL(f) });
+  e.target.value = '';
+  files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  renderThumbs();
+});
+async function startBlank() {
+  files = []; coverIdx = -1; galleryOrder = [];
+  const form = $('#meta');
+  ['title', 'slug', 'summary', 'collaborator', 'role', 'sn_problem', 'sn_approach', 'sn_outcome', 'body'].forEach((k) => (form[k].value = ''));
+  form.year.value = new Date().getFullYear();
+  cSkills = makeChips($('#cSkills'), []);
+  cSwatch = makeSwatches($('#cTheme'), 'teal');
+  const r = await (await fetch('/api/projects')).json();
+  form.order.value = Math.max(0, ...r.projects.map((p) => p.order)) + 1;
+  $('#builderStep1').textContent = '1 · Add images (optional)';
+  renderThumbs();
+  $('#ignored').textContent = '';
+  $('#builder').style.display = 'block';
+  $('#msg').className = 'msg';
+  $('#builder').scrollIntoView({ behavior: 'smooth' });
+}
+function placeholderCover(title, color) {
+  const c = document.createElement('canvas'); c.width = 1200; c.height = 750;
+  const x = c.getContext('2d');
+  x.fillStyle = color || '#7EB2AC'; x.fillRect(0, 0, 1200, 750);
+  x.fillStyle = 'rgba(0,0,0,.30)'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.font = '600 56px Outfit, Arial, sans-serif'; x.fillText(title || 'New project', 600, 355);
+  x.font = '500 26px Outfit, Arial, sans-serif'; x.fillText('Replace this cover in the editor', 600, 415);
+  return c.toDataURL('image/png').split(',')[1];
+}
+
+async function intake(fileList, folderName) {
+  files = []; coverIdx = -1; galleryOrder = [];
+  const ignored = [];
+  let bodyText = '';
+  for (const f of fileList) {
+    const ext = extOf(f.name);
+    if (IMG.includes(ext)) files.push({ name: f.name, safe: safe(f.name), kind: 'img', dataBase64: await toB64(f), url: URL.createObjectURL(f) });
+    else if (VID.includes(ext)) files.push({ name: f.name, safe: safe(f.name), kind: 'vid', dataBase64: await toB64(f) });
+    else if (TXT.includes(ext)) bodyText += (bodyText ? '\n\n' : '') + (await f.text());
+    else ignored.push(f.name);
+  }
+  files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  const form = $('#meta');
+  $('#builderStep1').textContent = '1 · Pick images';
+  form.title.value = folderName ? folderName.replace(/[-_]+/g, ' ').replace(/^\w/, (c) => c.toUpperCase()) : '';
+  form.year.value = new Date().getFullYear();
+  form.body.value = bodyText;
+  cSkills = makeChips($('#cSkills'), []);
+  cSwatch = makeSwatches($('#cTheme'), 'teal');
+  const r = await (await fetch('/api/projects')).json();
+  form.order.value = Math.max(0, ...r.projects.map((p) => p.order)) + 1;
+  renderThumbs();
+  $('#ignored').textContent = ignored.length ? 'Not imported (unsupported): ' + ignored.join(', ') : '';
+  const vids = files.filter((f) => f.kind === 'vid').length;
+  if (vids) $('#ignored').textContent += ' · ' + vids + ' video(s) will be embedded at the end of the page.';
+  $('#builder').style.display = 'block';
+  $('#msg').className = 'msg';
+}
+
+function renderThumbs() {
+  const g = $('#thumbs');
+  g.innerHTML = '';
+  if (!files.some((f) => f.kind === 'img')) {
+    g.innerHTML = '<p class="hint" style="grid-column:1/-1; margin:0">No images yet. Use “+ Add images”, or create now with a placeholder cover you can replace later.</p>';
+    return;
+  }
+  files.forEach((f, i) => {
+    if (f.kind !== 'img') return;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'thumb' + (i === coverIdx ? ' cover' : galleryOrder.includes(i) ? ' gal' : '');
+    const badge = i === coverIdx ? 'COVER' : galleryOrder.includes(i) ? 'GAL ' + (galleryOrder.indexOf(i) + 1) : '';
+    b.innerHTML = (badge ? '<span class="badge">' + badge + '</span>' : '') + '<img src="' + f.url + '" alt=""><span class="name">' + esc(f.name) + '</span>';
+    b.onclick = () => {
+      if (coverIdx === i) { coverIdx = -1; galleryOrder.push(i); }
+      else if (galleryOrder.includes(i)) galleryOrder = galleryOrder.filter((x) => x !== i);
+      else if (coverIdx === -1) coverIdx = i;
+      else galleryOrder.push(i);
+      renderThumbs();
+    };
+    g.appendChild(b);
+  });
+}
+
+$('#create').addEventListener('click', async () => {
+  const form = $('#meta'), msg = $('#msg');
+  if (!form.title.value.trim()) { msg.className = 'msg err'; msg.textContent = 'Title is required.'; return; }
+  if (coverIdx === -1) {
+    if (files.some((f) => f.kind === 'img')) { msg.className = 'msg err'; msg.textContent = 'Click one image above to set it as the cover.'; return; }
+    files.push({ name: 'cover.png', safe: 'cover.png', kind: 'img', dataBase64: placeholderCover(form.title.value.trim(), accentColorOf(cSwatch ? cSwatch.get() : 'teal')), url: '' });
+    coverIdx = files.length - 1;
+  }
+  msg.className = 'msg ok'; msg.textContent = 'Creating…';
+  const meta = {
+    title: form.title.value.trim(),
+    slug: form.slug.value.trim(),
+    summary: form.summary.value.trim(),
+    year: form.year.value,
+    collaborator: form.collaborator.value.trim(),
+    role: form.role.value.trim(),
+    tags: cSkills ? cSkills.get() : [],
+    theme: cSwatch ? cSwatch.get() : 'teal',
+    order: form.order.value,
+    cover: files[coverIdx].safe,
+    coverAlt: '',
+    snapshot: { problem: form.sn_problem.value.trim(), approach: form.sn_approach.value.trim(), outcome: form.sn_outcome.value.trim() },
+    gallery: galleryOrder.map((i) => ({ file: files[i].safe, alt: '' })),
+    body: form.body.value,
+  };
+  const r = await fetch('/api/create', { method: 'POST', body: JSON.stringify({ meta, files: files.map((f) => ({ name: f.name, dataBase64: f.dataBase64 })) }) });
+  const out = await r.json();
+  if (out.ok) {
+    msg.className = 'msg ok';
+    msg.innerHTML = '✓ Created <b>' + out.slug + '</b> (' + out.images + ' images' + (out.videos ? ', ' + out.videos + ' videos' : '') + '). <a target="_blank" href="' + out.preview + '">Open preview →</a> or <button class="small" onclick="openEditor(\'' + out.slug + '\')">fine-tune in the editor</button>';
+    $('#builder').style.display = 'none';
+    refresh();
+  } else { msg.className = 'msg err'; msg.textContent = out.error || 'failed'; }
+});
+
+/* ================= boot ================= */
+(async () => {
+  await loadPalette();
+  refresh();
+  try {
+    const r = await (await fetch('/api/skills')).json();
+    SKILLS = r.skills || [];
+    const dl = document.createElement('datalist');
+    dl.id = 'skill-suggest';
+    dl.innerHTML = SKILLS.map((s) => '<option value="' + esc(s) + '">').join('');
+    document.body.appendChild(dl);
+  } catch {}
+})();
+</script>
+</body>
+</html>
