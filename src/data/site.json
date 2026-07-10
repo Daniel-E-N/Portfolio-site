@@ -1,0 +1,248 @@
+{
+  "identity": {
+    "siteName": "Daniel Epler Nuñez",
+    "logoAlt": ""
+  },
+  "navigation": [
+    {
+      "id": "work",
+      "label": "Work",
+      "kind": "internal",
+      "href": "/#work",
+      "style": "link",
+      "visible": true
+    },
+    {
+      "id": "about",
+      "label": "About",
+      "kind": "internal",
+      "href": "/about",
+      "style": "link",
+      "visible": true
+    },
+    {
+      "id": "contact",
+      "label": "Contact",
+      "kind": "internal",
+      "href": "/contact",
+      "style": "link",
+      "visible": true
+    },
+    {
+      "id": "cv",
+      "label": "CV",
+      "kind": "internal",
+      "href": "/cv",
+      "style": "link",
+      "visible": true
+    }
+  ],
+  "footer": {
+    "text": "© {year} Daniel Epler Nuñez",
+    "links": [
+      {
+        "label": "LinkedIn",
+        "kind": "url",
+        "target": "https://www.linkedin.com/in/danieleplernunez/"
+      },
+      {
+        "label": "danielepler93@gmail.com",
+        "kind": "email",
+        "target": "danielepler93@gmail.com"
+      },
+      {
+        "label": "+45 27 63 96 85",
+        "kind": "phone",
+        "target": "+4527639685"
+      }
+    ]
+  },
+  "home": {
+    "metaTitle": "Daniel Epler Nuñez — Product Designer",
+    "hero": {
+      "eyebrow": "",
+      "heading": "I work through *complexity* so people don't have to",
+      "lede": "Blending UX principles, hands-on prototyping, and 3D CAD to turn real user needs into meaningful products.",
+      "portrait": {
+        "src": "portrait.png",
+        "alt": "Portrait of Daniel Epler Nuñez"
+      },
+      "buttons": [
+        {
+          "label": "See my work",
+          "kind": "internal",
+          "target": "#work",
+          "style": "solid",
+          "arrow": "↓",
+          "visible": true
+        },
+        {
+          "label": "About me",
+          "kind": "internal",
+          "target": "/about",
+          "style": "outline",
+          "arrow": "",
+          "visible": true
+        }
+      ]
+    },
+    "workSection": {
+      "heading": "Selected work"
+    },
+    "aboutTeaser": {
+      "visible": true,
+      "heading": "Design that supports the way people communicate and interact",
+      "text": "I'm an aspiring product designer with a solid foundation in UX principles and hands-on skills in user research, prototyping, and 3D CAD — driven by those moments when a product just works, effortlessly.",
+      "button": {
+        "label": "More about me",
+        "kind": "internal",
+        "target": "/about",
+        "style": "outline",
+        "arrow": "→",
+        "visible": true
+      },
+      "photos": [
+        {
+          "src": "photo-strip-1.webp",
+          "alt": "Daniel presenting design work"
+        },
+        {
+          "src": "photo-strip-2.webp",
+          "alt": "Prototyping session"
+        },
+        {
+          "src": "photo-strip-3.webp",
+          "alt": "Testing a cooking prototype"
+        },
+        {
+          "src": "photo-strip-4.webp",
+          "alt": "Workshop collaboration"
+        }
+      ]
+    },
+    "cta": {
+      "visible": true,
+      "heading": "Let's build something meaningful",
+      "text": "Open to product design opportunities and collaborations.",
+      "button": {
+        "label": "Contact",
+        "kind": "internal",
+        "target": "/contact",
+        "style": "outline",
+        "arrow": "→",
+        "visible": true
+      }
+    }
+  },
+  "about": {
+    "metaTitle": "About — Daniel Epler Nuñez",
+    "hero": {
+      "heading": "About me",
+      "lede": "Product designer working at the intersection of people, technology, and practice — driven by the moments when a product just works.",
+      "facts": [
+        "Odense, Denmark",
+        "MSc IT Product Design",
+        "Danish · English · Spanish"
+      ]
+    },
+    "portrait": {
+      "src": "portrait.png",
+      "alt": "Portrait of Daniel Epler Nuñez"
+    },
+    "paragraphs": [
+      "I'm a product designer with an MSc in IT Product Design from the University of Southern Denmark (grade average 12). I work where people, technology, and everyday practice meet: understanding users and their workflows, finding the friction, and turning insights into prototypes and decisions people can act on.",
+      "That has taken me from UX consulting at FIVE — where I redesigned a health app's onboarding from 18 steps to 3 — to AI research and teaching at SDU, investigating how generative AI reshapes competency needs and showing students how to treat AI as a design material. From the first field interview to the 3D-printed model in someone's hand, I like making ideas concrete enough to test.",
+      "What drives me are products with exceptional user experiences — the ones that offer seamless, effortless joy in their use. I'm calm and curious, structured when problems are unclear, and happiest in interdisciplinary teams gathering different perspectives around a shared direction."
+    ],
+    "skillsHeading": "What I work with",
+    "skills": [
+      "User research",
+      "Service design",
+      "Interaction design",
+      "Prototyping",
+      "Usability testing",
+      "Co-design",
+      "AI as design material",
+      "Workshop facilitation",
+      "Figma",
+      "3D CAD · Fusion 360",
+      "3D printing"
+    ],
+    "buttons": [
+      {
+        "label": "See my CV",
+        "kind": "internal",
+        "target": "/cv",
+        "style": "solid",
+        "arrow": "→",
+        "visible": true
+      },
+      {
+        "label": "Get in touch",
+        "kind": "internal",
+        "target": "/contact",
+        "style": "outline",
+        "arrow": "→",
+        "visible": true
+      }
+    ],
+    "photoStrip": {
+      "visible": true,
+      "photos": [
+        {
+          "src": "photo-strip-1.webp",
+          "alt": "Daniel presenting design work"
+        },
+        {
+          "src": "photo-strip-2.webp",
+          "alt": "Prototyping session"
+        },
+        {
+          "src": "photo-strip-3.webp",
+          "alt": "Testing a cooking prototype"
+        },
+        {
+          "src": "photo-strip-4.webp",
+          "alt": "Workshop collaboration"
+        }
+      ]
+    }
+  },
+  "contact": {
+    "metaTitle": "Contact — Daniel Epler Nuñez",
+    "hero": {
+      "heading": "Reach out",
+      "lede": "Open to product design opportunities, collaborations, and good conversations about design.",
+      "facts": [
+        "Based in Odense, Denmark"
+      ]
+    },
+    "links": [
+      {
+        "label": "Email",
+        "value": "danielepler93@gmail.com",
+        "kind": "email",
+        "target": "danielepler93@gmail.com",
+        "subject": "From daniel-epler-nunez.com"
+      },
+      {
+        "label": "LinkedIn",
+        "value": "danieleplernunez",
+        "kind": "url",
+        "target": "https://www.linkedin.com/in/danieleplernunez/"
+      },
+      {
+        "label": "Phone",
+        "value": "+45 27 63 96 85",
+        "kind": "phone",
+        "target": "+4527639685"
+      },
+      {
+        "label": "CV",
+        "value": "Interactive résumé, printable as PDF",
+        "kind": "internal",
+        "target": "/cv"
+      }
+    ]
+  }
+}

@@ -57,12 +57,38 @@ and > blockquotes for standout quotes.
 
 Each `##` section is numbered automatically on the page.
 
+## The CMS (recommended way to edit everything)
+
+```bash
+npm run cms     # local CMS at http://localhost:4322 (never part of the build)
+```
+
+The CMS manages the whole site from a sidebar dashboard:
+
+- **Pages → Home / About / Contact** — hero text, portrait, buttons, about teaser,
+  CTA band, story paragraphs, skills, quick facts, photo strips, contact links.
+- **Projects** — create (folder drop), edit, reorder, delete case studies (unchanged).
+- **Interactive CV** — profile, focus themes, skills, experience, education, PDF (unchanged).
+- **Site → Navigation & identity** — site name, logo, menu items (rename, reorder by
+  drag or arrows, hide/show, add/remove, internal or external destinations).
+- **Site → Footer** — footer text (`{year}` auto-updates) and links, shared site-wide.
+
+### Where site-wide content lives
+
+All Home / About / Contact / navigation / footer content is in **`src/data/site.json`**
+(single source of truth, created 2026-07 by extracting the previously hard-coded copy
+from the page files — nothing was lost, the pages now render from this file).
+The pages read it via `src/lib/site.ts`; images referenced by filename resolve to
+`src/assets/`. Editing `site.json` by hand works too — the CMS is just a friendlier way.
+
+Link model everywhere: `{ kind: internal | url | email | phone, target }` —
+internal paths (`/about`, `/#work`) get the base path automatically.
+
 ## Other places to edit
 
-- **Home intro / About / Contact text** → `src/pages/index.astro`, `about.astro`, `contact.astro`
 - **Colors, type, spacing** → `src/styles/global.css` (all design tokens at the top)
-- **Header/footer links** → `src/components/Header.astro`, `Footer.astro`
-- **CV button** → put your CV at `public/cv.pdf` (the header button links there)
+- **Case-study layout** → `src/pages/portfolio/[slug].astro`, `src/styles/case.css`
+- **Pre-CMS page files** → backups from the site-CMS migration are in `tools/backup-pre-sitecms/`
 
 ## Deploy (free)
 

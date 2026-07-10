@@ -286,57 +286,6 @@ const ACCENTS_FILE = path.join(HERE, 'accents.json');
 const HEX_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 function readAccents() { try { return JSON.parse(fs.readFileSync(ACCENTS_FILE, 'utf8')); } catch { return []; } }
 
-/* ---------------- site-wide content (src/data/site.json) ---------------- */
-const SITE_FILE = path.join(ROOT, 'src', 'data', 'site.json');
-const SITE_ASSETS_DIR = path.join(ROOT, 'src', 'assets');
-function readSite() { return JSON.parse(fs.readFileSync(SITE_FILE, 'utf8')); }
-function writeSite(site) { fs.writeFileSync(SITE_FILE, JSON.stringify(site, null, 2) + '\n'); }
-const listSiteAssets = () =>
-  fs.existsSync(SITE_ASSETS_DIR)
-    ? fs.readdirSync(SITE_ASSETS_DIR).filter((f) => IMG_EXT.has(path.extname(f).toLowerCase())).sort()
-    : [];
-
-const LINK_KINDS = new Set(['internal', 'url', 'email', 'phone']);
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-function linkErrors(l, where) {
-  const errs = [];
-  if (!l || typeof l !== 'object') return [where + ': invalid link'];
-  if (l.kind && !LINK_KINDS.has(l.kind)) errs.push(where + ': unknown link type "' + l.kind + '"');
-  const t = String(l.target ?? '').trim();
-  if (!t) errs.push(where + ': destination is empty');
-  else if (l.kind === 'email' && !EMAIL_RE.test(t)) errs.push(where + ': "' + t + '" is not a valid email address');
-  else if (l.kind === 'url' && !/^https?:\/\//.test(t)) errs.push(where + ': external URLs must start with http:// or https://');
-  else if ((l.kind === 'internal' || !l.kind) && !(t.startsWith('/') || t.startsWith('#'))) errs.push(where + ': internal paths must start with "/" or "#"');
-  return errs;
-}
-function validateSite(site) {
-  const errs = [];
-  if (!site || typeof site !== 'object') return ['invalid site payload'];
-  if (!site.identity || !String(site.identity.siteName || '').trim()) errs.push('Site name is required');
-  if (!Array.isArray(site.navigation)) errs.push('navigation must be a list');
-  else {
-    site.navigation.forEach((n, i) => {
-      const where = 'Navigation item ' + (i + 1) + (n.label ? ' ("' + n.label + '")' : '');
-      if (!String(n.label || '').trim()) errs.push(where + ': label is empty');
-      errs.push(...linkErrors({ kind: n.kind || 'internal', target: n.href }, where));
-    });
-    if (!site.navigation.some((n) => n.visible !== false)) errs.push('At least one navigation item must stay visible');
-  }
-  if (!site.footer || typeof site.footer.text !== 'string') errs.push('Footer text is missing');
-  (site.footer && site.footer.links || []).forEach((l, i) => {
-    const where = 'Footer link ' + (i + 1) + (l.label ? ' ("' + l.label + '")' : '');
-    if (!String(l.label || '').trim()) errs.push(where + ': label is empty');
-    errs.push(...linkErrors(l, where));
-  });
-  for (const key of ['home', 'about', 'contact']) if (!site[key] || typeof site[key] !== 'object') errs.push('Missing "' + key + '" page content');
-  (site.contact && site.contact.links || []).forEach((l, i) => {
-    const where = 'Contact link ' + (i + 1) + (l.label ? ' ("' + l.label + '")' : '');
-    if (!String(l.label || '').trim()) errs.push(where + ': label is empty');
-    errs.push(...linkErrors(l, where));
-  });
-  return errs;
-}
-
 /** In-place update of scalar frontmatter fields — leaves the rest of the file byte-for-byte. */
 function patchFields(slug, fields) {
   const file = path.join(PROJECTS, slug, 'index.md');
@@ -563,65 +512,6 @@ const server = http.createServer(async (req, res) => {
       fs.writeFileSync(path.join(dir, 'index.md'), serializeProject({ ...meta, type: 'case' }, sections));
 
       return json(res, 200, { ok: true, slug, images: written.length, videos: videoUrls.length, preview: `http://localhost:4321${BASE}/portfolio/${slug}` });
-    }
-
-    /* ---- site-wide content ---- */
-
-    /* serve site images (src/assets) for thumbnails */
-    const siteAsset = u.pathname.match(/^\/site-assets\/([^/]+)$/);
-    if (req.method === 'GET' && siteAsset) {
-      const f = path.join(SITE_ASSETS_DIR, decodeURIComponent(siteAsset[1]));
-      if (!path.resolve(f).startsWith(path.resolve(SITE_ASSETS_DIR) + path.sep) || !fs.existsSync(f)) { res.writeHead(404); return res.end(); }
-      res.writeHead(200, { 'Content-Type': MIME[path.extname(f).toLowerCase()] || 'application/octet-stream', 'Cache-Control': 'max-age=60' });
-      return res.end(fs.readFileSync(f));
-    }
-
-    /* serve the current logo */
-    if (req.method === 'GET' && u.pathname === '/site-logo') {
-      const f = path.join(PUBLIC_DIR, 'logo.png');
-      if (!fs.existsSync(f)) { res.writeHead(404); return res.end(); }
-      res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'no-cache' });
-      return res.end(fs.readFileSync(f));
-    }
-
-    /* home / about / contact / navigation / footer / identity */
-    if (u.pathname === '/api/site') {
-      if (req.method === 'GET') {
-        try { return json(res, 200, { site: readSite(), assets: listSiteAssets(), base: BASE }); }
-        catch (e) { return json(res, 500, { error: 'cannot read src/data/site.json: ' + e.message }); }
-      }
-      if (req.method === 'PUT') {
-        const { site } = JSON.parse(await readBody(req));
-        const errors = validateSite(site);
-        if (errors.length) return json(res, 400, { error: errors.join(' · ') });
-        writeSite(site);
-        return json(res, 200, { ok: true });
-      }
-    }
-
-    /* upload site images into src/assets */
-    if (req.method === 'POST' && u.pathname === '/api/site/assets') {
-      const { files } = JSON.parse(await readBody(req));
-      fs.mkdirSync(SITE_ASSETS_DIR, { recursive: true });
-      const added = [];
-      for (const f of files || []) {
-        const name = safeName(f.name);
-        if (!IMG_EXT.has(path.extname(name))) continue;
-        fs.writeFileSync(path.join(SITE_ASSETS_DIR, name), Buffer.from(f.dataBase64, 'base64'));
-        added.push(name);
-      }
-      return json(res, 200, { ok: true, added, assets: listSiteAssets() });
-    }
-
-    /* replace the logo (public/logo.png) */
-    if (req.method === 'POST' && u.pathname === '/api/site/logo') {
-      const { dataBase64 } = JSON.parse(await readBody(req));
-      const buf = Buffer.from(dataBase64 || '', 'base64');
-      const isPng = buf.length > 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47;
-      if (!isPng) return json(res, 400, { error: 'The logo must be a PNG file — it replaces public/logo.png.' });
-      fs.mkdirSync(PUBLIC_DIR, { recursive: true });
-      fs.writeFileSync(path.join(PUBLIC_DIR, 'logo.png'), buf);
-      return json(res, 200, { ok: true });
     }
 
     json(res, 404, { error: 'not found' });

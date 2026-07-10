@@ -1,0 +1,85 @@
+---
+import { Image } from 'astro:assets';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import portrait from '../assets/portrait.png';
+import strip1 from '../assets/photo-strip-1.webp';
+import strip2 from '../assets/photo-strip-2.webp';
+import strip3 from '../assets/photo-strip-3.webp';
+import strip4 from '../assets/photo-strip-4.webp';
+---
+
+<BaseLayout title="About — Daniel Epler Nuñez" current="about">
+  <section class="page-hero container">
+    <h1>About me</h1>
+    <p class="lede">
+      Product designer working at the intersection of people, technology, and
+      practice — driven by the moments when a product just works.
+    </p>
+    <ul class="cv-facts" aria-label="Quick facts">
+      <li>Odense, Denmark</li>
+      <li>MSc IT Product Design</li>
+      <li>Danish · English · Spanish</li>
+    </ul>
+  </section>
+
+  <section class="container" style="padding-bottom: var(--space-6);">
+    <div class="about-grid">
+      <div class="portrait">
+        <Image src={portrait} alt="Portrait of Daniel Epler Nuñez" widths={[480, 960]} sizes="(max-width: 880px) 22rem, 420px" />
+      </div>
+      <div class="about-body">
+        <p>
+          I'm a product designer with an MSc in IT Product Design from the
+          University of Southern Denmark (grade average 12). I work where
+          people, technology, and everyday practice meet: understanding users
+          and their workflows, finding the friction, and turning insights into
+          prototypes and decisions people can act on.
+        </p>
+        <p>
+          That has taken me from UX consulting at FIVE — where I redesigned a
+          health app's onboarding from 18 steps to 3 — to AI research and
+          teaching at SDU, investigating how generative AI reshapes competency
+          needs and showing students how to treat AI as a design material.
+          From the first field interview to the 3D-printed model in someone's
+          hand, I like making ideas concrete enough to test.
+        </p>
+        <p>
+          What drives me are products with exceptional user experiences — the
+          ones that offer seamless, effortless joy in their use. I'm calm and
+          curious, structured when problems are unclear, and happiest in
+          interdisciplinary teams gathering different perspectives around a
+          shared direction.
+        </p>
+
+        <h2 style="font-size: var(--step-2); margin: var(--space-4) 0 var(--space-2);">What I work with</h2>
+        <ul class="skills">
+          <li>User research</li>
+          <li>Service design</li>
+          <li>Interaction design</li>
+          <li>Prototyping</li>
+          <li>Usability testing</li>
+          <li>Co-design</li>
+          <li>AI as design material</li>
+          <li>Workshop facilitation</li>
+          <li>Figma</li>
+          <li>3D CAD · Fusion 360</li>
+          <li>3D printing</li>
+        </ul>
+
+        <div class="hero-actions" style="margin-top: var(--space-3);">
+          <a class="btn btn--solid" href={`${import.meta.env.BASE_URL}/cv`}>See my CV <span class="arrow">→</span></a>
+          <a class="btn" href={`${import.meta.env.BASE_URL}/contact`}>Get in touch <span class="arrow">→</span></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="container" style="padding-bottom: var(--space-6);">
+    <div class="photo-strip reveal" style="grid-template-columns: repeat(4, 1fr);">
+      <Image src={strip1} alt="Daniel presenting design work" widths={[400]} sizes="280px" />
+      <Image src={strip2} alt="Prototyping session" widths={[400]} sizes="280px" />
+      <Image src={strip3} alt="Testing a cooking prototype" widths={[400]} sizes="280px" />
+      <Image src={strip4} alt="Workshop collaboration" widths={[400]} sizes="280px" />
+    </div>
+  </section>
+</BaseLayout>

@@ -1,29 +1,19 @@
 ---
 interface Props {
-  current?: string;
+  current?: 'work' | 'about' | 'contact' | 'cv';
   /** Project accent theme (preset name or custom hex) — blends the header with themed pages */
   theme?: string;
 }
 import { resolveTheme } from '../lib/theme';
-import { linkHref, opensNewTab } from '../lib/site';
-import site from '../data/site.json';
-
 const { current, theme } = Astro.props;
 const t = theme ? resolveTheme(theme) : null;
-const base = import.meta.env.BASE_URL;
-
-const items = (site.navigation || []).filter((n) => n.visible !== false);
-const links = items.filter((n) => n.style !== 'button');
-const buttons = items.filter((n) => n.style === 'button');
-const hrefOf = (n: { kind?: string; href?: string }) =>
-  linkHref({ kind: n.kind || 'internal', target: n.href || '/' }, base);
 ---
 
 <header class="site-header" data-theme={t?.attr} style={t?.style}>
   <div class="container">
-    <a class="brand" href={`${base}/`} aria-label={`${site.identity.siteName} — home`}>
-      <img src={`${base}/logo.png`} alt={site.identity.logoAlt || ''} width="48" height="48" />
-      <span>{site.identity.siteName}</span>
+    <a class="brand" href={`${import.meta.env.BASE_URL}/`} aria-label="Daniel Epler Nuñez — home">
+      <img src={`${import.meta.env.BASE_URL}/logo.png`} alt="" width="48" height="48" />
+      <span>Daniel Epler Nuñez</span>
     </a>
 
     <button
@@ -36,27 +26,14 @@ const hrefOf = (n: { kind?: string; href?: string }) =>
     </button>
 
     <nav class="site-nav" id="site-nav" aria-label="Main">
-      {links.map((n) => (
-        <a
-          href={hrefOf(n)}
-          aria-current={current && n.id === current ? 'page' : undefined}
-          target={opensNewTab({ kind: n.kind }) ? '_blank' : undefined}
-          rel={opensNewTab({ kind: n.kind }) ? 'noopener' : undefined}
-        >{n.label}</a>
-      ))}
+      <a href={`${import.meta.env.BASE_URL}/#work`} aria-current={current === 'work' ? 'page' : undefined}>Work</a>
+      <a href={`${import.meta.env.BASE_URL}/about`} aria-current={current === 'about' ? 'page' : undefined}>About</a>
+      <a href={`${import.meta.env.BASE_URL}/contact`} aria-current={current === 'contact' ? 'page' : undefined}>Contact</a>
       <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
         <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
         <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
       </button>
-      {buttons.map((n) => (
-        <a
-          class="btn"
-          href={hrefOf(n)}
-          aria-current={current && n.id === current ? 'page' : undefined}
-          target={opensNewTab({ kind: n.kind }) ? '_blank' : undefined}
-          rel={opensNewTab({ kind: n.kind }) ? 'noopener' : undefined}
-        >{n.label}</a>
-      ))}
+      <a class="btn" href={`${import.meta.env.BASE_URL}/cv`} aria-current={current === 'cv' ? 'page' : undefined}>CV</a>
     </nav>
   </div>
 </header>

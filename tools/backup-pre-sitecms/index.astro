@@ -1,69 +1,50 @@
 ---
 import { getCollection } from 'astro:content';
 import { Image } from 'astro:assets';
-import type { ImageMetadata } from 'astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { resolveTheme } from '../lib/theme';
-import { linkHref, opensNewTab, emphasize } from '../lib/site';
-import site from '../data/site.json';
+
+import portrait from '../assets/portrait.png';
+import strip1 from '../assets/photo-strip-1.webp';
+import strip2 from '../assets/photo-strip-2.webp';
+import strip3 from '../assets/photo-strip-3.webp';
+import strip4 from '../assets/photo-strip-4.webp';
 
 const projects = (await getCollection('projects')).sort(
   (a, b) => a.data.order - b.data.order
 );
 const slugOf = (id: string) => id.split('/')[0];
-
-const base = import.meta.env.BASE_URL;
-const home = site.home;
-
-/* Site images (hero portrait, photo strip …) are picked in the CMS by filename */
-const assetModules = import.meta.glob<{ default: ImageMetadata }>(
-  '../assets/*.{png,jpg,jpeg,webp,gif,avif}',
-  { eager: true }
-);
-const img = (name?: string) => (name ? assetModules[`../assets/${name}`]?.default : undefined);
-
-const heroButtons = (home.hero.buttons || []).filter((b) => b.visible !== false);
-const teaser = home.aboutTeaser;
-const teaserPhotos = (teaser.photos || []).filter((p) => img(p.src));
-const cta = home.cta;
-const portrait = img(home.hero.portrait?.src);
 ---
 
-<BaseLayout title={home.metaTitle || site.identity.siteName} current="work">
+<BaseLayout title="Daniel Epler Nuñez — Product Designer" current="work">
   <section class="hero container">
     <div class="hero-grid">
       <div>
-        <p class="eyebrow reveal">{home.hero.eyebrow}</p>
-        <h1 class="reveal" style="transition-delay: 0.1s" set:html={emphasize(home.hero.heading)} />
-        <p class="lede reveal" style="transition-delay: 0.2s">{home.hero.lede}</p>
+        <p class="eyebrow reveal">Product Designer · MSc IT Product Design</p>
+        <h1 class="reveal" style="transition-delay: 0.1s">I design products people <em>actually enjoy</em> using.</h1>
+        <p class="lede reveal" style="transition-delay: 0.2s">
+          Blending UX principles, hands-on prototyping, and 3D CAD to turn
+          real user needs into meaningful products.
         <div class="hero-actions reveal" style="transition-delay: 0.3s">
-          {heroButtons.map((b) => (
-            <a
-              class={b.style === 'solid' ? 'btn btn--solid' : 'btn'}
-              href={linkHref(b, base)}
-              target={opensNewTab(b) ? '_blank' : undefined}
-              rel={opensNewTab(b) ? 'noopener' : undefined}
-            >{b.label} {b.arrow && <span class="arrow">{b.arrow}</span>}</a>
-          ))}
+          <a class="btn btn--solid" href="#work">See my work <span class="arrow">↓</span></a>
+          <a class="btn" href={`${import.meta.env.BASE_URL}/about`}>About me</a>
         </div>
       </div>
-      {portrait && (
-        <div class="hero-portrait-wrapper reveal" style="transition-delay: 0.4s">
-          <div class="hero-portrait">
-            <div class="blob">
-              <Image src={portrait} alt="" widths={[420, 840]} sizes="(max-width: 880px) 20rem, 26rem" />
-            </div>
-            <Image class="popout" src={portrait} alt={home.hero.portrait.alt || ''} widths={[420, 840]} sizes="(max-width: 880px) 20rem, 26rem" />
+      <div class="hero-portrait-wrapper reveal" style="transition-delay: 0.4s">
+        <div class="hero-portrait">
+          <div class="blob">
+             <Image src={portrait} alt="" widths={[420, 840]} sizes="(max-width: 880px) 20rem, 26rem" />
           </div>
+          <Image class="popout" src={portrait} alt="Portrait of Daniel Epler Nuñez" widths={[420, 840]} sizes="(max-width: 880px) 20rem, 26rem" />
         </div>
-      )}
+      </div>
     </div>
   </section>
 
   <!-- Work -->
   <section class="section container" id="work">
     <div class="section-head">
-      <h2>{home.workSection.heading}</h2>
+      <h2>Selected work</h2>
       <span class="count">{projects.length} projects</span>
     </div>
 
@@ -121,56 +102,42 @@ const portrait = img(home.hero.portrait?.src);
   </section>
 
   <!-- About teaser -->
-  {teaser.visible !== false && (
-    <section class="section container">
-      <div class="about-teaser reveal">
-        <div>
-          <h2>{teaser.heading}</h2>
-          <p>{teaser.text}</p>
-          {teaser.button?.visible !== false && teaser.button?.label && (
-            <a
-              class={teaser.button.style === 'solid' ? 'btn btn--solid' : 'btn'}
-              href={linkHref(teaser.button, base)}
-              target={opensNewTab(teaser.button) ? '_blank' : undefined}
-              rel={opensNewTab(teaser.button) ? 'noopener' : undefined}
-            >{teaser.button.label} {teaser.button.arrow && <span class="arrow">{teaser.button.arrow}</span>}</a>
-          )}
-        </div>
-        {teaserPhotos.length > 0 && (
-          <div class="photo-strip">
-            {teaserPhotos.map((p) => (
-              <Image src={img(p.src)!} alt={p.alt || ''} widths={[400]} sizes="280px" />
-            ))}
-          </div>
-        )}
+  <section class="section container">
+    <div class="about-teaser reveal">
+      <div>
+        <h2>Design that supports the way people communicate and interact</h2>
+        <p>
+          I'm an aspiring product designer with a solid foundation in UX
+          principles and hands-on skills in user research, prototyping, and
+          3D CAD — driven by those moments when a product just works,
+          effortlessly.
+        </p>
+        <a class="btn" href={`${import.meta.env.BASE_URL}/about`}>More about me <span class="arrow">→</span></a>
       </div>
-    </section>
-  )}
+      <div class="photo-strip">
+        <Image src={strip1} alt="Daniel presenting design work" widths={[400]} sizes="280px" />
+        <Image src={strip2} alt="Prototyping session" widths={[400]} sizes="280px" />
+        <Image src={strip3} alt="Testing a cooking prototype" widths={[400]} sizes="280px" />
+        <Image src={strip4} alt="Workshop collaboration" widths={[400]} sizes="280px" />
+      </div>
+    </div>
+  </section>
 
   <!-- CTA -->
-  {cta.visible !== false && (
-    <section class="section container">
-      <div class="cta-band reveal">
-        <h2>{cta.heading}</h2>
-        <p>{cta.text}</p>
-        {cta.button?.visible !== false && cta.button?.label && (
-          <a
-            class="btn"
-            href={linkHref(cta.button, base)}
-            target={opensNewTab(cta.button) ? '_blank' : undefined}
-            rel={opensNewTab(cta.button) ? 'noopener' : undefined}
-          >{cta.button.label} {cta.button.arrow && <span class="arrow">{cta.button.arrow}</span>}</a>
-        )}
-      </div>
-    </section>
-  )}
+  <section class="section container">
+    <div class="cta-band reveal">
+      <h2>Let's build something meaningful</h2>
+      <p>Open to product design opportunities and collaborations.</p>
+      <a class="btn" href="mailto:danielepler93@gmail.com">danielepler93@gmail.com <span class="arrow">→</span></a>
+    </div>
+  </section>
 
   <script>
     import { navigate } from 'astro:transitions/client';
 
     document.addEventListener('astro:page-load', () => {
       const cards = document.querySelectorAll('.work-card');
-
+      
       cards.forEach(card => {
         const inner = card.querySelector('.work-card__inner');
         if (!inner) return;
@@ -182,23 +149,23 @@ const portrait = img(home.hero.portrait?.src);
         const updateTransform = () => {
           inner.style.transform = `rotate3d(1, 0, 0, ${mouseRotateX + scrollRotateX}deg) rotate3d(0, 1, 0, ${mouseRotateY}deg)`;
         };
-
+        
         card.addEventListener('mousemove', (e) => {
           if (window.matchMedia('(hover: none)').matches) return;
           const ev = e;
           const rect = card.getBoundingClientRect();
           const x = ev.clientX - rect.left;
           const y = ev.clientY - rect.top;
-
+          
           const centerX = rect.width / 2;
           const centerY = rect.height / 2;
-
+          
           // Max tilt of 15 degrees
-          mouseRotateX = ((y - centerY) / centerY) * -15;
+          mouseRotateX = ((y - centerY) / centerY) * -15; 
           mouseRotateY = ((x - centerX) / centerX) * 15;
           updateTransform();
         });
-
+        
         card.addEventListener('mouseleave', () => {
           mouseRotateX = 0;
           mouseRotateY = 0;
@@ -208,15 +175,15 @@ const portrait = img(home.hero.portrait?.src);
         // Custom page transition logic
         card.addEventListener('click', (e) => {
           if (e.ctrlKey || e.metaKey || e.button !== 0) return;
-
+          
           e.preventDefault();
           const url = card.getAttribute('href');
           const circle = card.querySelector('.work-orb-circle:nth-child(5)');
-
+          
           if (circle) {
              card.classList.add('is-active');
              circle.classList.add('is-expanding');
-
+             
              setTimeout(() => {
                 navigate(url);
              }, 400);
@@ -228,11 +195,11 @@ const portrait = img(home.hero.portrait?.src);
         const handleScroll = () => {
           const rect = card.getBoundingClientRect();
           const windowHeight = window.innerHeight;
-
+          
           // 0 is perfectly centered
           const cardCenterY = rect.top + rect.height / 2;
           const distanceFromCenter = (cardCenterY - windowHeight / 2) / (windowHeight / 2);
-
+          
           if (distanceFromCenter > -1.5 && distanceFromCenter < 1.5) {
              scrollRotateX = distanceFromCenter * 8; // 8 degrees max scroll tilt
              updateTransform();
@@ -260,12 +227,12 @@ const portrait = img(home.hero.portrait?.src);
           const rect = portraitWrapper.getBoundingClientRect();
           const x = e.clientX - rect.left;
           const y = e.clientY - rect.top;
-
+          
           const centerX = rect.width / 2;
           const centerY = rect.height / 2;
-
+          
           // Max tilt of 10 degrees for portrait
-          pMouseRotateX = ((y - centerY) / centerY) * -10;
+          pMouseRotateX = ((y - centerY) / centerY) * -10; 
           pMouseRotateY = ((x - centerX) / centerX) * 10;
           updatePortraitTransform();
         });
@@ -281,7 +248,7 @@ const portrait = img(home.hero.portrait?.src);
           const windowHeight = window.innerHeight;
           const cardCenterY = rect.top + rect.height / 2;
           const distanceFromCenter = (cardCenterY - windowHeight / 2) / (windowHeight / 2);
-
+          
           if (distanceFromCenter > -1.5 && distanceFromCenter < 1.5) {
              pScrollRotateX = distanceFromCenter * 6;
              updatePortraitTransform();

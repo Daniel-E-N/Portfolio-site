@@ -32,7 +32,7 @@ gallery:
 ---
 ## Challenge
 
-<p class="section-claim">Make any pan a smart pan</p>
+<p class="section-claim">make any pan a smart pan</p>
 
 Ztove's cooktops can hold a pan at an exact temperature automatically — but only with Ztove's own cookware. For everyone else, the smartest features stay out of reach.
 
@@ -44,7 +44,7 @@ Ztove's cooktops can hold a pan at an exact temperature automatically — but on
 
 ## Research
 
-<p class="section-claim">In real kitchens, senses beat screens</p>
+<p class="section-claim">in real kitchens, senses beat screens</p>
 
 I observed home cooks in their own kitchens and talked through their routines. Two findings shaped everything that followed:
 
@@ -59,7 +59,7 @@ That set the design constraint: no screen, no app-first flow. The sensor had to 
 
 ## Prototyping
 
-<p class="section-claim">A sensor that disappears</p>
+<p class="section-claim">a sensor that disappears</p>
 
 The constraint pointed to a magnetic temperature probe that attaches to the bottom of any pot or pan. I built several working versions — varying shape, size, and attachment mechanism — using thermocouples, 3D-printed housings, and a lot of real cooking.
 
@@ -71,7 +71,7 @@ Each round of cooking with a prototype fed directly into the next: the probe got
 
 ## Testing
 
-<p class="section-claim">Home cooks forgot it was there</p>
+<p class="section-claim">home cooks forgot it was there</p>
 
 I put the prototypes in the hands of home cooks and let them do what they always do. The feedback was consistent:
 
@@ -84,7 +84,7 @@ These sessions confirmed the concept and defined the final form factor to resolv
 
 ## CAD model
 
-<p class="section-claim">Resolving the details</p>
+<p class="section-claim">resolving the details</p>
 
 I modelled the probe and its charging tray in full detail — internals, tolerances, materials, and how the pair would look and feel on a kitchen counter. The model became the key tool for communicating the concept to Ztove and to test participants.
 
